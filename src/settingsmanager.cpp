@@ -1,4 +1,5 @@
 #include "settingsmanager.h"
+#include <QUrl>
 
 SettingsManager::SettingsManager(QObject *parent)
     : QObject(parent)
@@ -66,4 +67,29 @@ void SettingsManager::resetToDefaults()
     Q_EMIT cachePauseChanged();
     Q_EMIT prefetchPlaylistChanged();
     Q_EMIT ytdlCookiesChanged();
+    Q_EMIT autoSkipIntroChanged();
+}
+
+void SettingsManager::addRecentFile(const QString &fileOrFolder)
+{
+    if (fileOrFolder.isEmpty()) return;
+    QString clean = fileOrFolder;
+    if (clean.startsWith(QStringLiteral("file://"))) {
+        clean = QUrl(clean).toLocalFile();
+    }
+
+    QStringList list = recentFiles();
+    list.removeAll(clean);
+    list.prepend(clean);
+    while (list.size() > 10) {
+        list.removeLast();
+    }
+    setVal(QStringLiteral("history/recentFiles"), list);
+    Q_EMIT recentFilesChanged();
+}
+
+void SettingsManager::clearRecentFiles()
+{
+    setVal(QStringLiteral("history/recentFiles"), QStringList());
+    Q_EMIT recentFilesChanged();
 }

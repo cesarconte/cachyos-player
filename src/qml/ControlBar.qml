@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import CachyOS.UI
+import org.cachyos.player
 
 Item {
     id: root
@@ -12,6 +13,7 @@ Item {
     property double duration: 0.0
     property double volume: 100.0
     property bool isMuted: false
+    property var chapters: []
 
     signal playPauseClicked()
     signal seekRequested(double position)
@@ -23,6 +25,7 @@ Item {
     signal openPreferences()
     signal openFilePicker()
     signal openFolderPicker()
+    signal openRecentRequested(string path)
     signal toggleFullscreen()
     signal togglePip()
 
@@ -72,16 +75,38 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                 }
 
-                CachySlider {
-                    id: seekSlider
+                Item {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 28
                     Layout.alignment: Qt.AlignVCenter
-                    from: 0.0
-                    to: Math.max(root.duration, 1.0)
-                    value: root.position
 
-                    onMoved: {
-                        root.seekRequested(value)
+                    CachySlider {
+                        id: seekSlider
+                        anchors.fill: parent
+                        from: 0.0
+                        to: Math.max(root.duration, 1.0)
+                        value: root.position
+
+                        onMoved: {
+                            root.seekRequested(value)
+                        }
+                    }
+
+                    // Chapter Markers overlay (subtle hairlines on timeline)
+                    Repeater {
+                        model: (root.duration > 0 && root.chapters) ? root.chapters : []
+                        delegate: Rectangle {
+                            required property var modelData
+                            readonly property double chapterTime: modelData.time ? Number(modelData.time) : 0.0
+                            visible: chapterTime > 0 && chapterTime < root.duration
+                            x: (chapterTime / root.duration) * (parent.width - 24) + 12
+                            y: (parent.height - 6) / 2
+                            width: 1.5
+                            height: 6
+                            radius: 0.75
+                            color: Qt.rgba(1, 1, 1, 0.75)
+                            z: 2
+                        }
                     }
                 }
 
@@ -124,6 +149,31 @@ Item {
                             iconName: "folder-open"
                             shortcutText: "Ctrl+Shift+O"
                             onTriggered: root.openFolderPicker()
+                        }
+
+                        CachyMenuSeparator {
+                            visible: PlayerSettings.recentFiles.length > 0
+                        }
+
+                        CachyMenu {
+                            id: recentSubMenu
+                            title: qsTr("Archivos recientes")
+                            icon.name: "document-open-recent"
+                            visible: PlayerSettings.recentFiles.length > 0
+
+                            Instantiator {
+                                model: PlayerSettings.recentFiles
+                                delegate: CachyMenuItem {
+                                    required property string modelData
+                                    text: {
+                                        var parts = modelData.split("/")
+                                        return parts[parts.length - 1]
+                                    }
+                                    onTriggered: root.openRecentRequested(modelData)
+                                }
+                                onObjectAdded: (index, object) => recentSubMenu.addItem(object)
+                                onObjectRemoved: (index, object) => recentSubMenu.removeItem(object)
+                            }
                         }
                     }
                 }

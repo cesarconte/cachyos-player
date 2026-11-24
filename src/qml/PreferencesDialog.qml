@@ -148,6 +148,15 @@ ModalSheet {
                     CachyFormDelegateSeparator {}
 
                     CachyFormCheckDelegate {
+                        label: qsTr("Saltar Cabeceras / Intros Automáticamente")
+                        description: qsTr("Salta la introducción al reproducir series si el archivo tiene marcas de capítulo")
+                        checked: PlayerSettings.autoSkipIntro
+                        onToggled: PlayerSettings.autoSkipIntro = checked
+                    }
+
+                    CachyFormDelegateSeparator {}
+
+                    CachyFormCheckDelegate {
                         label: qsTr("Recordar Posición al Salir (save-position-on-quit)")
                         description: qsTr("Guarda la marca de tiempo al cerrar el archivo")
                         checked: PlayerSettings.savePositionOnQuit

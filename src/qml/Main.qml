@@ -33,6 +33,8 @@ CachyWindow {
     property bool isFullscreen: false
     property bool isPip: false
     property var savedGeometry: ({ width: 1080, height: 640, x: 100, y: 100 })
+    property double currentIntroStart: 0.0
+    property double currentIntroEnd: 0.0
 
     Component.onCompleted: {
         var s = PlayerSettings
@@ -142,6 +144,41 @@ CachyWindow {
         Component.onCompleted: {
             if (typeof initialFileUrl !== "undefined" && initialFileUrl.length > 0) {
                 mpvController.openFile(initialFileUrl)
+            }
+        }
+
+        onChapterListChanged: {
+            // Analizar capítulos para detectar si existe intro / cabecera / opening
+            window.detectIntroRange()
+        }
+
+        onPositionChanged: {
+            // Auto skip si está activado en ajustes
+            if (PlayerSettings.autoSkipIntro && currentIntroEnd > 0) {
+                if (mpvController.position >= currentIntroStart && mpvController.position < currentIntroEnd) {
+                    mpvController.position = currentIntroEnd + 0.5
+                    hudPill.show("media-seek-forward", qsTr("Intro saltada automáticamente"))
+                }
+            }
+        }
+    }
+
+    function detectIntroRange() {
+        currentIntroStart = 0.0
+        currentIntroEnd = 0.0
+        var chs = mpvController.chapterList
+        if (!chs || chs.length === 0) return
+
+        var introPattern = /(intro|opening|op\b|cabecera|prologue|title sequence)/i
+        for (var i = 0; i < chs.length; ++i) {
+            var title = (chs[i].title || "").trim()
+            var start = chs[i].time || 0.0
+            var end = (i + 1 < chs.length) ? (chs[i + 1].time || 0.0) : (start + 90.0)
+
+            if (introPattern.test(title)) {
+                currentIntroStart = start
+                currentIntroEnd = end
+                return
             }
         }
     }
@@ -377,6 +414,7 @@ CachyWindow {
             duration: mpvController.duration
             volume: mpvController.volume
             isMuted: mpvController.muted
+            chapters: mpvController.chapterList
 
             onPlayPauseClicked: mpvController.togglePause()
             onSeekRequested: (pos) => mpvController.position = pos
@@ -391,6 +429,7 @@ CachyWindow {
                 dialogHelper.isPlaylistMode = false
                 dialogHelper.openFolder()
             }
+            onOpenRecentRequested: (path) => mpvController.openFile(path)
             onToggleFullscreen: window.toggleFullscreen()
             onTogglePip: window.togglePip()
             onOpenPreferences: preferencesDialog.open()
@@ -408,11 +447,25 @@ CachyWindow {
                 }
             }
         }
+
+        // Skip Intro Floating Button (Filmin / Netflix style)
+        CachyButton {
+            id: skipIntroBtn
+            anchors.right: parent.right
+            anchors.bottom: controlBar.top
+            anchors.rightMargin: 24
+            anchors.bottomMargin: 12
+            z: 25
+            visible: currentIntroEnd > 0 && mpvController.position >= currentIntroStart && mpvController.position < currentIntroEnd
+            text: qsTr("Saltar introducción ▶")
+            iconName: "media-seek-forward"
+            onClicked: {
+                mpvController.position = currentIntroEnd + 0.5
+                hudPill.show("media-seek-forward", qsTr("Introducción saltada"))
+            }
+        }
     }
 
-
-
-    
         // macOS / uosc HUD Pill (Volume, Speed, Seek indicator)
         Rectangle {
             id: hudPill

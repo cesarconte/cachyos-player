@@ -13,6 +13,8 @@ class SettingsManager : public QObject
     Q_PROPERTY(int windowWidth READ windowWidth WRITE setWindowWidth NOTIFY windowGeometryChanged)
     Q_PROPERTY(int windowHeight READ windowHeight WRITE setWindowHeight NOTIFY windowGeometryChanged)
     Q_PROPERTY(bool autoFitWindow READ autoFitWindow WRITE setAutoFitWindow NOTIFY autoFitWindowChanged)
+    Q_PROPERTY(QStringList recentFiles READ recentFiles NOTIFY recentFilesChanged)
+    Q_PROPERTY(bool autoSkipIntro READ autoSkipIntro WRITE setAutoSkipIntro NOTIFY autoSkipIntroChanged)
     Q_PROPERTY(QString profile READ profile WRITE setProfile NOTIFY profileChanged)
     Q_PROPERTY(QString vo READ vo WRITE setVo NOTIFY voChanged)
     Q_PROPERTY(QString gpuApi READ gpuApi WRITE setGpuApi NOTIFY gpuApiChanged)
@@ -88,6 +90,13 @@ public:
 
     bool autoFitWindow() const { return m_settings.value(QStringLiteral("window/autoFit"), true).toBool(); }
     void setAutoFitWindow(bool v) { setVal(QStringLiteral("window/autoFit"), v); Q_EMIT autoFitWindowChanged(); }
+
+    QStringList recentFiles() const { return m_settings.value(QStringLiteral("history/recentFiles")).toStringList(); }
+    Q_INVOKABLE void addRecentFile(const QString &fileOrFolder);
+    Q_INVOKABLE void clearRecentFiles();
+
+    bool autoSkipIntro() const { return m_settings.value(QStringLiteral("playback/autoSkipIntro"), false).toBool(); }
+    void setAutoSkipIntro(bool v) { setVal(QStringLiteral("playback/autoSkipIntro"), v); Q_EMIT autoSkipIntroChanged(); }
 
     QString profile() const { return m_settings.value(QStringLiteral("video/profile"), QStringLiteral("high-quality")).toString(); }
     void setProfile(const QString &v) { setVal(QStringLiteral("video/profile"), v); Q_EMIT profileChanged(); }
@@ -269,6 +278,8 @@ public:
 Q_SIGNALS:
     void windowGeometryChanged();
     void autoFitWindowChanged();
+    void recentFilesChanged();
+    void autoSkipIntroChanged();
     void profileChanged();
     void voChanged();
     void gpuApiChanged();

@@ -116,6 +116,7 @@ private:
     void setupMpvOptions();
     void updateTracks();
     void updatePlaylist();
+    void updateChapters();
     void detectCoverArt(const QString &filePath);
     void performAutoload(const QString &filePath);
 

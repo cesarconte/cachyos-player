@@ -52,6 +52,7 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "media-title", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "path", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "track-list", MPV_FORMAT_STRING);
+    mpv_observe_property(m_mpv, 0, "chapter-list", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "playlist", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "playlist-pos", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE);
@@ -275,6 +276,8 @@ void MpvController::handleMpvEvents()
                 Q_EMIT eofReachedChanged();
             } else if (strcmp(prop->name, "track-list") == 0) {
                 updateTracks();
+            } else if (strcmp(prop->name, "chapter-list") == 0) {
+                updateChapters();
             } else if (strcmp(prop->name, "playlist") == 0) {
                 updatePlaylist();
             } else if (strcmp(prop->name, "playlist-pos") == 0 && prop->format == MPV_FORMAT_INT64) {
@@ -297,6 +300,7 @@ void MpvController::handleMpvEvents()
         }
         case MPV_EVENT_FILE_LOADED: {
             updateTracks();
+            updateChapters();
             updatePlaylist();
             Q_EMIT fileLoaded(m_currentPath);
             break;
@@ -336,6 +340,29 @@ void MpvController::updateTracks()
             m_hasVideo = foundVideo;
             Q_EMIT hasVideoChanged();
         }
+    }
+}
+
+void MpvController::updateChapters()
+{
+    if (!m_mpv) return;
+
+    char *jsonStr = mpv_get_property_string(m_mpv, "chapter-list");
+    if (!jsonStr) {
+        m_chapterList.clear();
+        Q_EMIT chapterListChanged();
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(QByteArray(jsonStr));
+    mpv_free(jsonStr);
+
+    if (doc.isArray()) {
+        m_chapterList = doc.array().toVariantList();
+        Q_EMIT chapterListChanged();
+    } else {
+        m_chapterList.clear();
+        Q_EMIT chapterListChanged();
     }
 }
 
@@ -473,6 +500,10 @@ void MpvController::openFile(const QString &fileOrUrl)
 
     detectCoverArt(cleanPath);
 
+    // Save to recent files history
+    SettingsManager s;
+    s.addRecentFile(cleanPath);
+
     // Load target file first (replacing current playback)
     const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), "replace", nullptr};
     mpv_command_async(m_mpv, 0, args);
@@ -502,6 +533,8 @@ void MpvController::openFiles(const QList<QUrl> &urls)
     }
 
     detectCoverArt(allMediaFiles.first());
+    SettingsManager s;
+    s.addRecentFile(allMediaFiles.first());
     const char *firstArgs[] = {"loadfile", allMediaFiles.first().toUtf8().constData(), "replace", nullptr};
     mpv_command_async(m_mpv, 0, firstArgs);
 
