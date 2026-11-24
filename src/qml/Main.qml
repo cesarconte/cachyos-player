@@ -18,6 +18,20 @@ CachyWindow {
     showWindowFrame: !isFullscreen
     cornerRadius: isFullscreen ? 0 : 20
 
+    headerCenter: CachyLabel {
+        text: window.title
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
+        color: (mpvController.hasVideo && !window.isFullscreen)
+            ? "#FFFFFF"
+            : CachyPalette.text
+        elide: Text.ElideMiddle
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 20, implicitWidth)
+    }
+
     property bool isFullscreen: false
 
     // Standard mpv / macOS Keyboard Shortcuts

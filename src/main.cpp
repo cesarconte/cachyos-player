@@ -4,6 +4,7 @@
 #include <QQmlContext>
 #include <QIcon>
 #include <QQuickWindow>
+#include <QQuickStyle>
 
 #include "mpvcontroller.h"
 #include "mpvitem.h"
@@ -14,6 +15,16 @@ int main(int argc, char *argv[])
 {
     // libmpv strictly requires LC_NUMERIC to be C
     std::setlocale(LC_NUMERIC, "C");
+
+    // Force native Wayland backend with real alpha buffer for Liquid Glass blur
+    if (qgetenv("QT_QPA_PLATFORM").isEmpty()) {
+        qputenv("QT_QPA_PLATFORM", "wayland;xcb");
+    }
+    QQuickWindow::setDefaultAlphaBuffer(true);
+
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
+        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
+    }
 
     // High-performance Wayland attributes
     QGuiApplication::setOrganizationName(QStringLiteral("CachyOS"));
