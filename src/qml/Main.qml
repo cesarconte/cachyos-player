@@ -70,7 +70,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Abrir archivo(s)...")
-                shortcut: "Ctrl+O"
                 onTriggered: {
                     dialogHelper.isPlaylistMode = false
                     dialogHelper.openFiles()
@@ -79,7 +78,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Abrir carpeta / temporada...")
-                shortcut: "Ctrl+Shift+O"
                 onTriggered: {
                     dialogHelper.isPlaylistMode = false
                     dialogHelper.openFolder()
@@ -110,7 +108,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Cerrar")
-                shortcut: "Ctrl+W"
                 onTriggered: mpvController.stop()
             }
 
@@ -118,7 +115,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Salir")
-                shortcut: "Ctrl+Q"
                 onTriggered: Qt.quit()
             }
         }
@@ -128,7 +124,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: mpvController.paused ? qsTr("Reproducir") : qsTr("Pausar")
-                shortcut: "Space"
                 onTriggered: mpvController.togglePause()
             }
 
@@ -141,25 +136,21 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Avanzar 10 segundos")
-                shortcut: "Right"
                 onTriggered: mpvController.seekRelative(10)
             }
 
             Platform.MenuItem {
                 text: qsTr("Retroceder 10 segundos")
-                shortcut: "Left"
                 onTriggered: mpvController.seekRelative(-10)
             }
 
             Platform.MenuItem {
                 text: qsTr("Capítulo siguiente")
-                shortcut: "Shift+N"
                 onTriggered: mpvController.nextChapter()
             }
 
             Platform.MenuItem {
                 text: qsTr("Capítulo anterior")
-                shortcut: "Shift+P"
                 onTriggered: mpvController.previousChapter()
             }
 
@@ -167,19 +158,16 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Subir volumen")
-                shortcut: "Up"
                 onTriggered: mpvController.volume = Math.min(150, mpvController.volume + 5)
             }
 
             Platform.MenuItem {
                 text: qsTr("Bajar volumen")
-                shortcut: "Down"
                 onTriggered: mpvController.volume = Math.max(0, mpvController.volume - 5)
             }
 
             Platform.MenuItem {
                 text: mpvController.muted ? qsTr("Reactivar sonido") : qsTr("Silenciar")
-                shortcut: "M"
                 onTriggered: mpvController.muted = !mpvController.muted
             }
         }
@@ -189,13 +177,11 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: window.isFullscreen ? qsTr("Salir de pantalla completa") : qsTr("Pantalla completa")
-                shortcut: "F"
                 onTriggered: window.toggleFullscreen()
             }
 
             Platform.MenuItem {
                 text: window.isPip ? qsTr("Desactivar Picture in Picture") : qsTr("Picture in Picture (Siempre visible)")
-                shortcut: "P"
                 onTriggered: window.togglePip()
             }
 
@@ -203,13 +189,11 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Información del archivo (Inspector)...")
-                shortcut: "Ctrl+I"
                 onTriggered: mediaInspectorSheet.open()
             }
 
             Platform.MenuItem {
                 text: qsTr("Estadísticas en pantalla (OSD)")
-                shortcut: "Shift+I"
                 onTriggered: mpvController.toggleStats()
             }
 
@@ -222,7 +206,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Capturar fotograma")
-                shortcut: "S"
                 onTriggered: mpvController.takeScreenshot()
             }
 
@@ -230,7 +213,6 @@ CachyWindow {
 
             Platform.MenuItem {
                 text: qsTr("Preferencias...")
-                shortcut: "Ctrl+,"
                 onTriggered: preferencesDialog.open()
             }
         }
@@ -561,13 +543,23 @@ CachyWindow {
             hideUiTimer.restart()
         }
 
+        Timer {
+            id: singleClickTimer
+            interval: 220
+            repeat: false
+            onTriggered: {
+                mpvController.togglePause()
+            }
+        }
+
         onDoubleClicked: {
+            singleClickTimer.stop()
             window.toggleFullscreen()
         }
 
         onClicked: (mouse) => {
             if (mouse.button === Qt.LeftButton) {
-                mpvController.togglePause()
+                singleClickTimer.restart()
             }
         }
 
