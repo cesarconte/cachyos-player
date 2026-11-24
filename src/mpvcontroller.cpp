@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QDir>
+#include <QDirIterator>
 #include <QUrl>
 #include <QOpenGLContext>
 #include <QJsonDocument>
@@ -320,6 +321,41 @@ void MpvController::detectCoverArt(const QString &filePath)
     Q_EMIT coverArtPathChanged();
 }
 
+static QStringList supportedMediaFilters()
+{
+    return {
+        QStringLiteral("*.mp4"), QStringLiteral("*.mkv"), QStringLiteral("*.avi"),
+        QStringLiteral("*.mov"), QStringLiteral("*.webm"), QStringLiteral("*.m4v"),
+        QStringLiteral("*.flv"), QStringLiteral("*.wmv"), QStringLiteral("*.ts"),
+        QStringLiteral("*.m2ts"), QStringLiteral("*.mpg"), QStringLiteral("*.mpeg"),
+        QStringLiteral("*.flac"), QStringLiteral("*.mp3"), QStringLiteral("*.ogg"),
+        QStringLiteral("*.opus"), QStringLiteral("*.wav"), QStringLiteral("*.m4a"),
+        QStringLiteral("*.aac"), QStringLiteral("*.wma")
+    };
+}
+
+static QStringList collectMediaFiles(const QString &path)
+{
+    QFileInfo fi(path);
+    if (!fi.exists()) return {};
+
+    if (fi.isFile()) {
+        return { fi.absoluteFilePath() };
+    }
+
+    if (fi.isDir()) {
+        QStringList found;
+        QDirIterator it(path, supportedMediaFilters(), QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            found << it.next();
+        }
+        found.sort(Qt::CaseInsensitive);
+        return found;
+    }
+
+    return {};
+}
+
 void MpvController::performAutoload(const QString &filePath)
 {
     QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
@@ -331,12 +367,7 @@ void MpvController::performAutoload(const QString &filePath)
     if (!fi.exists()) return;
 
     QDir dir = fi.dir();
-    QStringList filters = {
-        QStringLiteral("*.mp4"), QStringLiteral("*.mkv"), QStringLiteral("*.avi"),
-        QStringLiteral("*.mov"), QStringLiteral("*.webm"), QStringLiteral("*.m4v"),
-        QStringLiteral("*.flac"), QStringLiteral("*.mp3"), QStringLiteral("*.ogg"),
-        QStringLiteral("*.opus"), QStringLiteral("*.wav"), QStringLiteral("*.m4a")
-    };
+    QStringList filters = supportedMediaFilters();
 
     QStringList files = dir.entryList(filters, QDir::Files, QDir::Name | QDir::LocaleAware);
     if (files.size() <= 1) return;
@@ -360,6 +391,27 @@ void MpvController::openFile(const QString &fileOrUrl)
         cleanPath = QUrl(cleanPath).toLocalFile();
     }
 
+    QFileInfo fi(cleanPath);
+    if (fi.isDir()) {
+        QStringList mediaFiles = collectMediaFiles(cleanPath);
+        if (mediaFiles.isEmpty()) return;
+
+        if (!m_mpvGL) {
+            m_pendingFile = mediaFiles.first();
+            return;
+        }
+
+        detectCoverArt(mediaFiles.first());
+        const char *firstArgs[] = {"loadfile", mediaFiles.first().toUtf8().constData(), "replace", nullptr};
+        mpv_command_async(m_mpv, 0, firstArgs);
+
+        for (int i = 1; i < mediaFiles.size(); ++i) {
+            const char *appendArgs[] = {"loadfile", mediaFiles[i].toUtf8().constData(), "append", nullptr};
+            mpv_command_async(m_mpv, 0, appendArgs);
+        }
+        return;
+    }
+
     if (!m_mpvGL) {
         m_pendingFile = cleanPath;
         return;
@@ -373,6 +425,36 @@ void MpvController::openFile(const QString &fileOrUrl)
 
     // Populate playlist with siblings in the same directory
     performAutoload(cleanPath);
+}
+
+void MpvController::openFiles(const QList<QUrl> &urls)
+{
+    if (urls.isEmpty()) return;
+
+    QStringList allMediaFiles;
+    for (const auto &url : urls) {
+        QString localPath = url.isLocalFile() ? url.toLocalFile() : url.toString();
+        if (localPath.startsWith(QStringLiteral("file://"))) {
+            localPath = QUrl(localPath).toLocalFile();
+        }
+        allMediaFiles << collectMediaFiles(localPath);
+    }
+
+    if (allMediaFiles.isEmpty()) return;
+
+    if (!m_mpvGL) {
+        m_pendingFile = allMediaFiles.first();
+        return;
+    }
+
+    detectCoverArt(allMediaFiles.first());
+    const char *firstArgs[] = {"loadfile", allMediaFiles.first().toUtf8().constData(), "replace", nullptr};
+    mpv_command_async(m_mpv, 0, firstArgs);
+
+    for (int i = 1; i < allMediaFiles.size(); ++i) {
+        const char *appendArgs[] = {"loadfile", allMediaFiles[i].toUtf8().constData(), "append", nullptr};
+        mpv_command_async(m_mpv, 0, appendArgs);
+    }
 }
 
 void MpvController::togglePause()
@@ -549,8 +631,12 @@ void MpvController::addFileToPlaylist(const QString &fileOrUrl)
     if (fileOrUrl.isEmpty()) return;
     QString clean = fileOrUrl;
     if (clean.startsWith(QStringLiteral("file://"))) clean = QUrl(clean).toLocalFile();
-    const char *args[] = {"loadfile", clean.toUtf8().constData(), "append", nullptr};
-    mpv_command_async(m_mpv, 0, args);
+
+    QStringList mediaFiles = collectMediaFiles(clean);
+    for (const auto &file : mediaFiles) {
+        const char *args[] = {"loadfile", file.toUtf8().constData(), "append", nullptr};
+        mpv_command_async(m_mpv, 0, args);
+    }
 }
 
 void MpvController::clearPlaylist()

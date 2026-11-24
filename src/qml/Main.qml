@@ -144,7 +144,7 @@ CachyWindow {
             onDropped: (drop) => {
                 if (drop.hasUrls && drop.urls.length > 0) {
                     drop.acceptProposedAction()
-                    mpvController.openFile(drop.urls[0])
+                    mpvController.openFiles(drop.urls)
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QTimer>
@@ -64,6 +65,7 @@ public:
     QString coverArtPath() const { return m_coverArtPath; }
 
     Q_INVOKABLE void openFile(const QString &fileOrUrl);
+    Q_INVOKABLE void openFiles(const QList<QUrl> &urls);
     Q_INVOKABLE void togglePause();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void seekRelative(double seconds);
