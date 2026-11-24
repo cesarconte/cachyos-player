@@ -1,0 +1,213 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Dialogs
+import CachyOS.UI
+import org.cachyos.player
+
+CachyWindow {
+    id: window
+    width: 1080
+    height: 640
+    minimumWidth: 480
+    minimumHeight: 320
+    title: mpvController.mediaTitle.length > 0 ? mpvController.mediaTitle + " - CachyOS Player" : "CachyOS Player"
+
+    property bool isFullscreen: false
+
+    MpvController {
+        id: mpvController
+
+        Component.onCompleted: {
+            if (typeof initialFileUrl !== "undefined" && initialFileUrl.length > 0) {
+                mpvController.openFile(initialFileUrl)
+            }
+        }
+    }
+
+    // Auto-hide UI timer on inactivity
+    Timer {
+        id: hideUiTimer
+        interval: 3000
+        running: !mpvController.paused
+        repeat: false
+        onTriggered: {
+            if (!controlBar.containsMouse && !headerArea.containsMouse) {
+                uiOverlay.opacity = 0.0
+            }
+        }
+    }
+
+    MouseArea {
+        id: globalMouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+        onPositionChanged: {
+            uiOverlay.opacity = 1.0
+            hideUiTimer.restart()
+        }
+
+        onDoubleClicked: {
+            window.toggleFullscreen()
+        }
+
+        onClicked: (mouse) => {
+            if (mouse.button === Qt.LeftButton) {
+                mpvController.togglePause()
+            }
+        }
+
+        onWheel: (wheel) => {
+            if (wheel.angleDelta.y > 0) {
+                mpvController.volume = Math.min(150, mpvController.volume + 5)
+            } else if (wheel.angleDelta.y < 0) {
+                mpvController.volume = Math.max(0, mpvController.volume - 5)
+            }
+        }
+
+        // Mpv video surface
+        MpvItem {
+            id: mpvItem
+            anchors.fill: parent
+            controller: mpvController
+        }
+
+        // Placeholder when idle
+        ColumnLayout {
+            anchors.centerIn: parent
+            visible: mpvController.duration === 0
+            spacing: 12
+
+            CachyIcon {
+                Layout.alignment: Qt.AlignHCenter
+                name: "multimedia-video-player"
+                size: 64
+                color: Qt.rgba(1, 1, 1, 0.4)
+            }
+
+            CachyHeading {
+                Layout.alignment: Qt.AlignHCenter
+                level: 2
+                text: qsTr("Arrastra o abre un archivo multimedia")
+                color: Qt.rgba(1, 1, 1, 0.6)
+            }
+
+            CachyButton {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("Seleccionar archivo...")
+                iconName: "document-open"
+                onClicked: fileDialog.open()
+            }
+        }
+
+        // Overlay with controls and headers
+        Item {
+            id: uiOverlay
+            anchors.fill: parent
+            opacity: 1.0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+            }
+
+            // Top Header with Traffic Lights
+            Rectangle {
+                id: headerArea
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 44
+                color: Qt.rgba(0.05, 0.06, 0.08, 0.75)
+                visible: !window.isFullscreen
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    spacing: 12
+
+                    CachyTrafficLights {
+                        window: window
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    CachyLabel {
+                        text: mpvController.mediaTitle
+                        font.bold: true
+                        color: "white"
+                        elide: Text.ElideMiddle
+                        Layout.maximumWidth: 400
+                    }
+
+                    Item { Layout.fillWidth: true }
+                }
+            }
+
+            // Bottom Floating Controls (QuickTime & uosc ergonomics)
+            ControlBar {
+                id: controlBar
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottomMargin: 24
+
+                isPaused: mpvController.paused
+                position: mpvController.position
+                duration: mpvController.duration
+                volume: mpvController.volume
+                isMuted: mpvController.muted
+
+                onPlayPauseClicked: mpvController.togglePause()
+                onSeekRequested: (pos) => mpvController.position = pos
+                onUserVolumeChanged: (vol) => mpvController.volume = vol
+                onMuteToggled: mpvController.muted = !mpvController.muted
+                onOpenFilePicker: fileDialog.open()
+                onToggleFullscreen: window.toggleFullscreen()
+                onOpenPreferences: preferencesDialog.open()
+
+                onOpenTracksMenu: (type, targetItem) => {
+                    trackMenu.trackType = type
+                    trackMenu.trackList = mpvController.trackList
+                    trackMenu.open()
+                }
+            }
+        }
+    }
+
+    // Native file picker
+    FileDialog {
+        id: fileDialog
+        title: qsTr("Abrir vídeo o audio")
+        nameFilters: [
+            qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.wav *.ogg)"),
+            qsTr("Todos los archivos (*)")
+        ]
+        onAccepted: {
+            mpvController.openFile(fileDialog.selectedFile)
+        }
+    }
+
+    TrackMenu {
+        id: trackMenu
+        onTrackSelected: (type, id) => {
+            mpvController.selectTrack(type, id)
+        }
+    }
+
+    PreferencesDialog {
+        id: preferencesDialog
+    }
+
+    function toggleFullscreen() {
+        if (isFullscreen) {
+            window.showNormal()
+            isFullscreen = false
+        } else {
+            window.showFullScreen()
+            isFullscreen = true
+        }
+    }
+}

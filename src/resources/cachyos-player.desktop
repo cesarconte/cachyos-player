@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=CachyOS Player
+GenericName=Reproductor Multimedia
+Comment=Reproductor multimedia de alta fidelidad basado en libmpv y CachyOS.UI
+Exec=cachyos-player %U
+Icon=multimedia-video-player
+Terminal=false
+Type=Application
+Categories=Qt;AudioVideo;Player;Video;
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;audio/flac;audio/mpeg;audio/ogg;
+Keywords=mpv;video;player;movie;media;audio;
