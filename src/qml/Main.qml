@@ -22,9 +22,7 @@ CachyWindow {
         text: window.title
         font.pixelSize: 13
         font.weight: Font.DemiBold
-        color: (mpvController.hasVideo && !window.isFullscreen)
-            ? "#FFFFFF"
-            : CachyPalette.text
+        color: CachyPalette.text
         elide: Text.ElideMiddle
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -126,11 +124,17 @@ CachyWindow {
         }
     }
 
-    backgroundColor: mpvController.hasVideo ? "#000000" : "transparent"
-
     MouseArea {
         id: globalMouseArea
         anchors.fill: parent
+
+        // Dedicated black canvas behind video when playing video
+        Rectangle {
+            anchors.fill: parent
+            color: "#000000"
+            visible: mpvController.hasVideo
+            z: -1
+        }
 
         DropArea {
             anchors.fill: parent
@@ -176,6 +180,7 @@ CachyWindow {
             id: mpvItem
             anchors.fill: parent
             controller: mpvController
+            visible: mpvController.hasVideo
             z: 0
         }
 
@@ -190,8 +195,8 @@ CachyWindow {
                 width: Math.min(window.width * 0.45, 280)
                 height: width
                 radius: 16
-                color: Qt.rgba(0.12, 0.14, 0.18, 0.75)
-                border.color: Qt.rgba(1, 1, 1, 0.18)
+                color: CachyPalette.cardBackground
+                border.color: CachyPalette.hardDividerColor
                 border.width: 1
                 clip: true
 
@@ -208,7 +213,7 @@ CachyWindow {
                     anchors.centerIn: parent
                     name: "audio-x-generic"
                     size: 64
-                    color: Qt.rgba(1, 1, 1, 0.5)
+                    color: CachyPalette.textSecondary
                     visible: mpvController.coverArtPath.length === 0
                 }
             }
@@ -217,7 +222,7 @@ CachyWindow {
                 Layout.alignment: Qt.AlignHCenter
                 level: 2
                 text: mpvController.mediaTitle
-                color: "white"
+                color: CachyPalette.text
                 elide: Text.ElideMiddle
                 Layout.maximumWidth: Math.min(window.width - 80, 500)
             }
@@ -233,14 +238,14 @@ CachyWindow {
                 Layout.alignment: Qt.AlignHCenter
                 name: "multimedia-video-player"
                 size: 64
-                color: Qt.rgba(1, 1, 1, 0.4)
+                color: CachyPalette.textSecondary
             }
 
             CachyHeading {
                 Layout.alignment: Qt.AlignHCenter
                 level: 2
                 text: qsTr("Arrastra o abre un archivo multimedia")
-                color: Qt.rgba(1, 1, 1, 0.6)
+                color: CachyPalette.text
             }
 
             CachyButton {

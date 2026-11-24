@@ -142,7 +142,7 @@ void MpvController::setupMpvOptions()
     mpv_set_option_string(m_mpv, "volume-max", QByteArray::number(maxVol).constData());
     mpv_set_option_string(m_mpv, "gapless-audio", gapless ? "yes" : "no");
     mpv_set_option_string(m_mpv, "audio-file-auto", "fuzzy");
-    mpv_set_option_string(m_mpv, "audio-display", "embedded-first");
+    mpv_set_option_string(m_mpv, "audio-display", "no");
     mpv_set_option_string(m_mpv, "ad-lavc-downmix", "no");
 
     mpv_set_option_string(m_mpv, "audio-resample-filter-size", QByteArray::number(resampleSize).constData());
@@ -266,8 +266,12 @@ void MpvController::updateTracks()
         for (const auto &item : list) {
             QVariantMap track = item.toMap();
             if (track.value(QStringLiteral("type")).toString() == QStringLiteral("video")) {
-                foundVideo = true;
-                break;
+                bool isAlbumArt = track.value(QStringLiteral("albumart"), false).toBool()
+                               || track.value(QStringLiteral("image"), false).toBool();
+                if (!isAlbumArt) {
+                    foundVideo = true;
+                    break;
+                }
             }
         }
         m_trackList = list;
