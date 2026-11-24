@@ -86,6 +86,7 @@ Item {
                         from: 0.0
                         to: Math.max(root.duration, 1.0)
                         value: root.position
+                        stepSize: 5.0
 
                         Binding {
                             target: seekSlider
