@@ -16,6 +16,75 @@ CachyWindow {
 
     property bool isFullscreen: false
 
+    // Standard mpv / macOS Keyboard Shortcuts
+    Shortcut {
+        sequence: "Space"
+        onActivated: mpvController.togglePause()
+    }
+    Shortcut {
+        sequence: "Left"
+        onActivated: mpvController.seekRelative(-5)
+    }
+    Shortcut {
+        sequence: "Right"
+        onActivated: mpvController.seekRelative(5)
+    }
+    Shortcut {
+        sequence: "Shift+Left"
+        onActivated: mpvController.seekRelative(-30)
+    }
+    Shortcut {
+        sequence: "Shift+Right"
+        onActivated: mpvController.seekRelative(30)
+    }
+    Shortcut {
+        sequence: "Up"
+        onActivated: mpvController.volume = Math.min(150, mpvController.volume + 5)
+    }
+    Shortcut {
+        sequence: "Down"
+        onActivated: mpvController.volume = Math.max(0, mpvController.volume - 5)
+    }
+    Shortcut {
+        sequence: "m"
+        onActivated: mpvController.muted = !mpvController.muted
+    }
+    Shortcut {
+        sequence: "f"
+        onActivated: window.toggleFullscreen()
+    }
+    Shortcut {
+        sequence: "Escape"
+        onActivated: {
+            if (window.isFullscreen) window.toggleFullscreen()
+        }
+    }
+    Shortcut {
+        sequence: "["
+        onActivated: mpvController.playbackSpeed = Math.max(0.25, mpvController.playbackSpeed - 0.1)
+    }
+    Shortcut {
+        sequence: "]"
+        onActivated: mpvController.playbackSpeed = Math.min(4.0, mpvController.playbackSpeed + 0.1)
+    }
+    Shortcut {
+        sequence: "Backspace"
+        onActivated: mpvController.playbackSpeed = 1.0
+    }
+    Shortcut {
+        sequence: "s"
+        onActivated: mpvController.takeScreenshot()
+    }
+    Shortcut {
+        sequence: "Ctrl+O"
+        onActivated: fileDialog.open()
+    }
+    Shortcut {
+        sequence: "Ctrl+,"
+        onActivated: preferencesDialog.open()
+    }
+
+
     MpvController {
         id: mpvController
 
@@ -44,6 +113,20 @@ CachyWindow {
     MouseArea {
         id: globalMouseArea
         anchors.fill: parent
+
+        DropArea {
+            anchors.fill: parent
+            onEntered: (drag) => {
+                if (drag.hasUrls) drag.acceptProposedAction()
+            }
+            onDropped: (drop) => {
+                if (drop.hasUrls && drop.urls.length > 0) {
+                    drop.acceptProposedAction()
+                    mpvController.openFile(drop.urls[0])
+                }
+            }
+        }
+
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
@@ -201,6 +284,62 @@ CachyWindow {
         }
     }
 
+    
+        // macOS / uosc HUD Pill (Volume, Speed, Seek indicator)
+        Rectangle {
+            id: hudPill
+            anchors.top: parent.top
+            anchors.topMargin: window.isFullscreen ? 24 : 54
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: hudLayout.implicitWidth + 28
+            height: 36
+            radius: 18
+            color: Qt.rgba(0.08, 0.09, 0.12, 0.88)
+            border.color: Qt.rgba(1, 1, 1, 0.18)
+            border.width: 1
+            z: 20
+            opacity: 0.0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+
+            Timer {
+                id: hudTimer
+                interval: 1200
+                repeat: false
+                onTriggered: hudPill.opacity = 0.0
+            }
+
+            RowLayout {
+                id: hudLayout
+                anchors.centerIn: parent
+                spacing: 8
+
+                CachyIcon {
+                    id: hudIcon
+                    name: "audio-volume-high"
+                    size: 16
+                    color: "white"
+                }
+
+                CachyLabel {
+                    id: hudLabel
+                    text: ""
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: "white"
+                }
+            }
+
+            function show(icon, text) {
+                hudIcon.name = icon
+                hudLabel.text = text
+                hudPill.opacity = 1.0
+                hudTimer.restart()
+            }
+        }
+
     TrackMenu {
         id: trackMenu
         onTrackSelected: (type, id) => {
@@ -211,6 +350,22 @@ CachyWindow {
     PreferencesDialog {
         id: preferencesDialog
     }
+
+    Connections {
+        target: mpvController
+        function onVolumeChanged() {
+            if (mpvController.duration > 0) {
+                var icon = mpvController.muted || mpvController.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
+                hudPill.show(icon, qsTr("Volumen: %1%").arg(Math.round(mpvController.volume)))
+            }
+        }
+        function onPlaybackSpeedChanged() {
+            if (mpvController.duration > 0) {
+                hudPill.show("speedometer", qsTr("Velocidad: %1x").arg(mpvController.playbackSpeed.toFixed(2)))
+            }
+        }
+    }
+
 
     function toggleFullscreen() {
         if (isFullscreen) {
