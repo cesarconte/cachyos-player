@@ -20,10 +20,12 @@ Item {
     property alias footerContent: footerHost.data
 
     signal closed()
+    signal opened()
 
     function open() {
         root.visible = true;
         root.forceActiveFocus();
+        root.opened();
     }
 
     function close() {

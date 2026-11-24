@@ -68,6 +68,10 @@ MpvController::MpvController(QObject *parent)
 MpvController::~MpvController()
 {
     m_eventTimer.stop();
+    if (m_mpv) {
+        const char *wlArgs[] = {"write-watch-later-config", nullptr};
+        mpv_command(m_mpv, wlArgs);
+    }
     if (m_mpvGL) {
         mpv_render_context_free(m_mpvGL);
         m_mpvGL = nullptr;
@@ -121,7 +125,12 @@ void MpvController::setupMpvOptions()
     bool interpolation = s.value(QStringLiteral("video/interpolation"), true).toBool();
     bool deband = s.value(QStringLiteral("video/deband"), true).toBool();
     bool savePos = s.value(QStringLiteral("video/savePositionOnQuit"), true).toBool();
-    bool resumePlay = s.value(QStringLiteral("video/resumePlayback"), false).toBool();
+    bool resumePlay = s.value(QStringLiteral("video/resumePlayback"), true).toBool();
+
+    QString watchLaterDir = QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/mpv/watch_later");
+    QDir().mkpath(watchLaterDir);
+    mpv_set_option_string(m_mpv, "watch-later-dir", watchLaterDir.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "write-filename-in-watch-later-config", "yes");
 
     mpv_set_option_string(m_mpv, "profile", profile.toUtf8().constData());
     // mpv_set_option_string(m_mpv, "vo", "libmpv") is already set above
@@ -506,6 +515,12 @@ void MpvController::openFile(const QString &fileOrUrl)
     SettingsManager s;
     s.addRecentFile(cleanPath);
 
+    // Save watch-later state of previous file if any
+    if (m_duration > 0) {
+        const char *wlArgs[] = {"write-watch-later-config", nullptr};
+        mpv_command_async(m_mpv, 0, wlArgs);
+    }
+
     // Load target file first (replacing current playback)
     const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), "replace", nullptr};
     mpv_command_async(m_mpv, 0, args);
@@ -559,6 +574,10 @@ void MpvController::setPaused(bool paused)
 
 void MpvController::stop()
 {
+    if (m_mpv) {
+        const char *wlArgs[] = {"write-watch-later-config", nullptr};
+        mpv_command_async(m_mpv, 0, wlArgs);
+    }
     const char *args[] = {"stop", nullptr};
     mpv_command_async(m_mpv, 0, args);
 }
@@ -685,6 +704,69 @@ void MpvController::takeScreenshot()
 {
     const char *args[] = {"screenshot", "video", nullptr};
     mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::toggleStats()
+{
+    const char *args[] = {"script-binding", "stats/display-stats-toggle", nullptr};
+    mpv_command_async(m_mpv, 0, args);
+}
+
+QVariantMap MpvController::getMediaInfo() const
+{
+    QVariantMap info;
+    if (!m_mpv) return info;
+
+    auto getString = [this](const char *prop) -> QString {
+        char *str = mpv_get_property_string(m_mpv, prop);
+        if (!str) return QString();
+        QString res = QString::fromUtf8(str);
+        mpv_free(str);
+        return res;
+    };
+
+    auto getDouble = [this](const char *prop) -> double {
+        double val = 0.0;
+        if (mpv_get_property(m_mpv, prop, MPV_FORMAT_DOUBLE, &val) >= 0) {
+            return val;
+        }
+        return 0.0;
+    };
+
+    auto getInt64 = [this](const char *prop) -> qint64 {
+        int64_t val = 0;
+        if (mpv_get_property(m_mpv, prop, MPV_FORMAT_INT64, &val) >= 0) {
+            return val;
+        }
+        return 0;
+    };
+
+    info[QStringLiteral("mediaTitle")] = m_mediaTitle;
+    info[QStringLiteral("currentPath")] = m_currentPath;
+    info[QStringLiteral("duration")] = m_duration;
+    info[QStringLiteral("fileSize")] = getInt64("file-size");
+    info[QStringLiteral("fileFormat")] = getString("file-format");
+
+    // Video
+    info[QStringLiteral("videoCodec")] = getString("video-codec");
+    info[QStringLiteral("videoCodecName")] = getString("video-format");
+    info[QStringLiteral("videoWidth")] = m_videoWidth;
+    info[QStringLiteral("videoHeight")] = m_videoHeight;
+    info[QStringLiteral("dwidth")] = getInt64("dwidth");
+    info[QStringLiteral("dheight")] = getInt64("dheight");
+    info[QStringLiteral("fps")] = getDouble("container-fps") > 0.0 ? getDouble("container-fps") : getDouble("estimated-vf-fps");
+    info[QStringLiteral("videoBitrate")] = getDouble("video-bitrate");
+    info[QStringLiteral("hwdecCurrent")] = getString("hwdec-current");
+    info[QStringLiteral("frameDropCount")] = getInt64("frame-drop-count");
+
+    // Audio
+    info[QStringLiteral("audioCodec")] = getString("audio-codec");
+    info[QStringLiteral("audioCodecName")] = getString("audio-codec-name");
+    info[QStringLiteral("audioBitrate")] = getDouble("audio-bitrate");
+    info[QStringLiteral("audioSampleRate")] = getInt64("audio-params/samplerate");
+    info[QStringLiteral("audioChannels")] = getString("audio-params/channel-count");
+
+    return info;
 }
 
 void MpvController::updatePlaylist()

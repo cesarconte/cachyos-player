@@ -40,6 +40,7 @@ qt_add_qml_module(cachyos-player
     QML_FILES
         qml/Main.qml
         qml/ModalSheet.qml
+        qml/MediaInspectorSheet.qml
         qml/PreferencesDialog.qml
         qml/ControlBar.qml
         qml/MediaButton.qml

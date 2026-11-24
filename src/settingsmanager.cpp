@@ -68,6 +68,7 @@ void SettingsManager::resetToDefaults()
     Q_EMIT prefetchPlaylistChanged();
     Q_EMIT ytdlCookiesChanged();
     Q_EMIT autoSkipIntroChanged();
+    Q_EMIT cursorHideTimeoutChanged();
 }
 
 void SettingsManager::addRecentFile(const QString &fileOrFolder)

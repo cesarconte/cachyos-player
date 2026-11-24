@@ -88,6 +88,8 @@ public:
     Q_INVOKABLE QVariant getProperty(const QString &name) const;
     Q_INVOKABLE void command(const QVariantList &args);
     Q_INVOKABLE void takeScreenshot();
+    Q_INVOKABLE void toggleStats();
+    Q_INVOKABLE QVariantMap getMediaInfo() const;
 
 Q_SIGNALS:
     void pausedChanged();

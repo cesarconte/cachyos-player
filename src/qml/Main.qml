@@ -33,6 +33,7 @@ CachyWindow {
 
     property bool isFullscreen: false
     property bool isPip: false
+    property bool cursorHidden: false
     property var savedGeometry: ({ width: 1080, height: 640, x: 100, y: 100 })
     property double currentIntroStart: 0.0
     property double currentIntroEnd: 0.0
@@ -201,6 +202,20 @@ CachyWindow {
             Platform.MenuSeparator {}
 
             Platform.MenuItem {
+                text: qsTr("Información del archivo (Inspector)...")
+                shortcut: "Ctrl+I"
+                onTriggered: mediaInspectorSheet.open()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Estadísticas en pantalla (OSD)")
+                shortcut: "Shift+I"
+                onTriggered: mpvController.toggleStats()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
                 text: qsTr("Lista de reproducción")
                 onTriggered: playlistDrawer.open()
             }
@@ -295,6 +310,18 @@ CachyWindow {
     Shortcut {
         sequence: "p"
         onActivated: togglePip()
+    }
+    Shortcut {
+        sequence: "Ctrl+I"
+        onActivated: mediaInspectorSheet.open()
+    }
+    Shortcut {
+        sequence: "Shift+I"
+        onActivated: mpvController.toggleStats()
+    }
+    Shortcut {
+        sequence: "i"
+        onActivated: mpvController.toggleStats()
     }
 
 
@@ -407,15 +434,18 @@ CachyWindow {
         }
     }
 
-    // Auto-hide UI timer on inactivity
+    // Auto-hide UI and Cursor timer on inactivity
     Timer {
         id: hideUiTimer
-        interval: 3000
+        interval: PlayerSettings.cursorHideTimeout > 0 ? PlayerSettings.cursorHideTimeout : 3000
         running: !mpvController.paused && mpvController.duration > 0
         repeat: false
         onTriggered: {
             if (!controlBar.containsMouse) {
                 controlBar.opacity = 0.0
+            }
+            if (PlayerSettings.cursorHideTimeout > 0 && !controlBar.containsMouse) {
+                window.cursorHidden = true
             }
         }
     }
@@ -423,6 +453,7 @@ CachyWindow {
     MouseArea {
         id: globalMouseArea
         anchors.fill: parent
+        cursorShape: window.cursorHidden ? Qt.BlankCursor : Qt.ArrowCursor
 
         // Dedicated black canvas behind video when playing video
         Rectangle {
@@ -449,6 +480,7 @@ CachyWindow {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onPositionChanged: {
+            window.cursorHidden = false
             controlBar.opacity = 1.0
             hideUiTimer.restart()
         }
@@ -690,6 +722,10 @@ CachyWindow {
 
     PreferencesDialog {
         id: preferencesDialog
+    }
+
+    MediaInspectorSheet {
+        id: mediaInspectorSheet
     }
 
     PlaylistDrawer {

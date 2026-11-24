@@ -15,6 +15,7 @@ class SettingsManager : public QObject
     Q_PROPERTY(bool autoFitWindow READ autoFitWindow WRITE setAutoFitWindow NOTIFY autoFitWindowChanged)
     Q_PROPERTY(QStringList recentFiles READ recentFiles NOTIFY recentFilesChanged)
     Q_PROPERTY(bool autoSkipIntro READ autoSkipIntro WRITE setAutoSkipIntro NOTIFY autoSkipIntroChanged)
+    Q_PROPERTY(int cursorHideTimeout READ cursorHideTimeout WRITE setCursorHideTimeout NOTIFY cursorHideTimeoutChanged)
     Q_PROPERTY(QString profile READ profile WRITE setProfile NOTIFY profileChanged)
     Q_PROPERTY(QString vo READ vo WRITE setVo NOTIFY voChanged)
     Q_PROPERTY(QString gpuApi READ gpuApi WRITE setGpuApi NOTIFY gpuApiChanged)
@@ -97,6 +98,9 @@ public:
 
     bool autoSkipIntro() const { return m_settings.value(QStringLiteral("playback/autoSkipIntro"), false).toBool(); }
     void setAutoSkipIntro(bool v) { setVal(QStringLiteral("playback/autoSkipIntro"), v); Q_EMIT autoSkipIntroChanged(); }
+
+    int cursorHideTimeout() const { return m_settings.value(QStringLiteral("window/cursorHideTimeout"), 2000).toInt(); }
+    void setCursorHideTimeout(int v) { setVal(QStringLiteral("window/cursorHideTimeout"), v); Q_EMIT cursorHideTimeoutChanged(); }
 
     QString profile() const { return m_settings.value(QStringLiteral("video/profile"), QStringLiteral("high-quality")).toString(); }
     void setProfile(const QString &v) { setVal(QStringLiteral("video/profile"), v); Q_EMIT profileChanged(); }
@@ -280,6 +284,7 @@ Q_SIGNALS:
     void autoFitWindowChanged();
     void recentFilesChanged();
     void autoSkipIntroChanged();
+    void cursorHideTimeoutChanged();
     void profileChanged();
     void voChanged();
     void gpuApiChanged();

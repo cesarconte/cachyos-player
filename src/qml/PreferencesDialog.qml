@@ -161,6 +161,28 @@ ModalSheet {
                         checked: PlayerSettings.resumePlayback
                         onToggled: PlayerSettings.resumePlayback = checked
                     }
+
+                    CachyFormDelegateSeparator {}
+
+                    CachyFormComboBoxDelegate {
+                        label: qsTr("Ocultar cursor automáticamente")
+                        description: qsTr("Tiempo de inactividad del ratón antes de ocultar el puntero en reproducción")
+                        model: [
+                            qsTr("1 segundo"),
+                            qsTr("2 segundos"),
+                            qsTr("3 segundos"),
+                            qsTr("5 segundos"),
+                            qsTr("Nunca")
+                        ]
+                        property var timeoutValues: [1000, 2000, 3000, 5000, 0]
+                        currentIndex: {
+                            var idx = timeoutValues.indexOf(PlayerSettings.cursorHideTimeout)
+                            return idx !== -1 ? idx : 1
+                        }
+                        onActivated: (index) => {
+                            PlayerSettings.cursorHideTimeout = timeoutValues[index]
+                        }
+                    }
                 }
             }
         }
