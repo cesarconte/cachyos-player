@@ -124,6 +124,7 @@ CachyWindow {
 
             onPlayPauseClicked: mpvController.togglePause()
             onSeekRequested: (pos) => mpvController.position = pos
+            onSeekRelative: (sec) => mpvController.seekRelative(sec)
             onUserVolumeChanged: (vol) => mpvController.volume = vol
             onMuteToggled: mpvController.muted = !mpvController.muted
             onOpenFilePicker: fileDialog.open()

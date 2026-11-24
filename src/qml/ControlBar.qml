@@ -15,6 +15,7 @@ Item {
 
     signal playPauseClicked()
     signal seekRequested(double position)
+    signal seekRelative(double seconds)
     signal userVolumeChanged(double volume)
     signal muteToggled()
     signal openTracksMenu(string type, var targetItem)
@@ -35,12 +36,12 @@ Item {
         return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s
     }
 
-    // Floating Capsule Background (macOS Liquid Glass / QuickTime style)
+    // Floating Capsule Background (macOS Liquid Glass / QuickTime / uosc style)
     Rectangle {
         id: capsule
         anchors.centerIn: parent
-        width: Math.min(parent.width - 48, 680)
-        height: 82
+        width: Math.min(parent.width - 48, 640)
+        height: 76
         radius: 20
         color: Qt.rgba(0.08, 0.09, 0.12, 0.88)
         border.color: Qt.rgba(1, 1, 1, 0.16)
@@ -48,19 +49,23 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 6
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.topMargin: 8
+            anchors.bottomMargin: 8
+            spacing: 4
 
-            // Seekbar and Time Labels
+            // Top Row: Seekbar and Time Labels (uosc / QuickTime timeline)
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 24
+                Layout.preferredHeight: 22
                 spacing: 10
 
                 CachyLabel {
                     text: root.formatTime(root.position)
                     font.pixelSize: 11
-                    color: Qt.rgba(1, 1, 1, 0.8)
+                    font.bold: true
+                    color: Qt.rgba(1, 1, 1, 0.85)
                     Layout.alignment: Qt.AlignVCenter
                 }
 
@@ -80,89 +85,91 @@ Item {
                 CachyLabel {
                     text: root.formatTime(root.duration)
                     font.pixelSize: 11
-                    color: Qt.rgba(1, 1, 1, 0.8)
+                    font.bold: true
+                    color: Qt.rgba(1, 1, 1, 0.85)
                     Layout.alignment: Qt.AlignVCenter
                 }
             }
 
-            // Media & Tool Buttons
+            // Bottom Row: Ergonomic Transport & Tools Bar (QuickTime distribution)
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 32
-                spacing: 8
+                Layout.preferredHeight: 34
+                spacing: 6
 
-                // Open File
-                CachyToolbarButton {
+                // LEFT CLUSTER: Sources & Menus (Open, Subtitles, Audio)
+                MediaButton {
                     iconName: "document-open"
                     tooltipText: qsTr("Abrir archivo...")
-                    pillStyle: false
                     onClicked: root.openFilePicker()
                     Layout.alignment: Qt.AlignVCenter
                 }
 
-                // Subtitles menu
-                CachyToolbarButton {
+                MediaButton {
                     id: subBtn
                     iconName: "media-view-subtitles"
                     tooltipText: qsTr("Subtítulos")
-                    pillStyle: false
                     onClicked: root.openTracksMenu("sub", subBtn)
                     Layout.alignment: Qt.AlignVCenter
                 }
 
-                // Audio menu
-                CachyToolbarButton {
+                MediaButton {
                     id: audioBtn
                     iconName: "audio-speakers"
                     tooltipText: qsTr("Pistas de audio")
-                    pillStyle: false
                     onClicked: root.openTracksMenu("audio", audioBtn)
                     Layout.alignment: Qt.AlignVCenter
                 }
 
                 Item { Layout.fillWidth: true }
 
-                // Play / Pause central button (macOS QuickTime Glass Orb)
-                Rectangle {
+                // CENTER CLUSTER: QuickTime Playback Transport (Seek -10s, Play/Pause, Seek +10s)
+                Row {
                     Layout.alignment: Qt.AlignVCenter
-                    width: 32
-                    height: 32
-                    radius: 16
-                    color: playHover.hovered ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.14)
-                    border.color: Qt.rgba(1, 1, 1, 0.28)
-                    border.width: 1
+                    spacing: 8
 
-                    CachyIcon {
-                        anchors.centerIn: parent
-                        name: root.isPaused ? "media-playback-start" : "media-playback-pause"
-                        size: 16
-                        color: "white"
+                    MediaButton {
+                        iconName: "media-seek-backward"
+                        tooltipText: qsTr("Retroceder 10s")
+                        iconSize: 16
+                        onClicked: root.seekRelative(-10)
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    HoverHandler {
-                        id: playHover
-                        cursorShape: Qt.PointingHandCursor
+                    MediaButton {
+                        primary: true
+                        implicitWidth: 36
+                        implicitHeight: 36
+                        radius: 18
+                        iconName: root.isPaused ? "media-playback-start" : "media-playback-pause"
+                        iconSize: 18
+                        tooltipText: root.isPaused ? qsTr("Reproducir") : qsTr("Pausar")
+                        onClicked: root.playPauseClicked()
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    TapHandler {
-                        onTapped: root.playPauseClicked()
+                    MediaButton {
+                        iconName: "media-seek-forward"
+                        tooltipText: qsTr("Avanzar 10s")
+                        iconSize: 16
+                        onClicked: root.seekRelative(10)
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
                 Item { Layout.fillWidth: true }
 
-                // Volume button & slider
-                CachyToolbarButton {
+                // RIGHT CLUSTER: Audio Volume, Fullscreen & Preferences
+                MediaButton {
                     iconName: root.isMuted || root.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
                     tooltipText: qsTr("Silenciar")
-                    pillStyle: false
                     onClicked: root.muteToggled()
                     Layout.alignment: Qt.AlignVCenter
                 }
 
                 CachySlider {
                     id: volumeSlider
-                    Layout.preferredWidth: 70
+                    Layout.preferredWidth: 64
                     Layout.alignment: Qt.AlignVCenter
                     from: 0
                     to: 150
@@ -170,20 +177,16 @@ Item {
                     onMoved: root.userVolumeChanged(value)
                 }
 
-                // Fullscreen
-                CachyToolbarButton {
+                MediaButton {
                     iconName: "view-fullscreen"
                     tooltipText: qsTr("Pantalla completa")
-                    pillStyle: false
                     onClicked: root.toggleFullscreen()
                     Layout.alignment: Qt.AlignVCenter
                 }
 
-                // Preferences
-                CachyToolbarButton {
+                MediaButton {
                     iconName: "configure"
                     tooltipText: qsTr("Ajustes")
-                    pillStyle: false
                     onClicked: root.openPreferences()
                     Layout.alignment: Qt.AlignVCenter
                 }
