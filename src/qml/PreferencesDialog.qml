@@ -4,12 +4,11 @@ import QtQuick.Layouts
 import CachyOS.UI
 import org.cachyos.player
 
-CachyDialog {
+ModalSheet {
     id: root
     title: qsTr("Ajustes del Reproductor")
     subtitle: qsTr("Configuración de motor libmpv, decodificación, audio y subtítulos")
     preferredWidth: 720
-    showCancelButton: false
 
     property int currentTab: 0
 

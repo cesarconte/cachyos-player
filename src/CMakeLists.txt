@@ -33,6 +33,7 @@ qt_add_qml_module(cachyos-player
     RESOURCE_PREFIX "/"
     QML_FILES
         qml/Main.qml
+        qml/ModalSheet.qml
         qml/PreferencesDialog.qml
         qml/ControlBar.qml
         qml/MediaButton.qml
