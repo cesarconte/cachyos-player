@@ -58,6 +58,29 @@ CachyPopover {
                     }
                 }
             }
+
+            // EasyEffects Profile Selector (Only shown for Audio)
+            RowLayout {
+                visible: root.trackType === "audio" && EasyEffects.isAvailable
+                spacing: 6
+
+                CachyLabel {
+                    text: qsTr("EasyEffects:")
+                    font.pixelSize: 11
+                    color: CachyPalette.textSecondary
+                }
+
+                CachyComboBox {
+                    id: eeCombo
+                    Layout.preferredWidth: 160
+                    model: EasyEffects.presets
+                    currentIndex: Math.max(0, EasyEffects.presets.indexOf(EasyEffects.currentPreset))
+                    onActivated: (index) => {
+                        var p = EasyEffects.presets[index]
+                        EasyEffects.loadPreset(p)
+                    }
+                }
+            }
         }
 
         CachyLabel {

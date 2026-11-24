@@ -12,6 +12,8 @@ set(SOURCES
     subsyncmanager.cpp
     dialoghelper.h
     dialoghelper.cpp
+    easyeffectsmanager.h
+    easyeffectsmanager.cpp
 )
 
 qt_add_executable(cachyos-player ${SOURCES})
