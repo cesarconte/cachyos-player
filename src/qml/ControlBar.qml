@@ -46,8 +46,8 @@ Item {
     Rectangle {
         id: capsule
         anchors.centerIn: parent
-        width: Math.min(parent.width - 48, 640)
-        height: 76
+        width: Math.min(parent.width - 48, 720)
+        height: 80
         radius: 20
         color: Qt.rgba(0.08, 0.09, 0.12, 0.88)
         border.color: Qt.rgba(1, 1, 1, 0.16)
@@ -55,8 +55,8 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
             anchors.topMargin: 8
             anchors.bottomMargin: 8
             spacing: 4
@@ -65,7 +65,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 22
-                spacing: 10
+                spacing: 12
 
                 CachyLabel {
                     text: root.formatTime(root.position)
@@ -120,94 +120,97 @@ Item {
             }
 
             // Bottom Row: Ergonomic Transport & Tools Bar (QuickTime distribution)
-            RowLayout {
+            Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                spacing: 6
+                Layout.preferredHeight: 36
 
-                // LEFT CLUSTER: Sources & Menus (Open, Subtitles, Audio)
-                MediaButton {
-                    id: openBtn
-                    iconName: "document-open"
-                    tooltipText: qsTr("Abrir...")
-                    onClicked: openMenu.open()
-                    Layout.alignment: Qt.AlignVCenter
+                // LEFT CLUSTER: Sources & Menus (Open, Subtitles, Audio, Playlist)
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
 
-                    CachyMenu {
-                        id: openMenu
-                        y: -implicitHeight - 6
-
-                        CachyMenuItem {
-                            text: qsTr("Abrir archivo(s)...")
-                            iconName: "document-open"
-                            shortcutText: "Ctrl+O"
-                            onTriggered: root.openFilePicker()
-                        }
-
-                        CachyMenuItem {
-                            text: qsTr("Abrir carpeta...")
-                            iconName: "folder-open"
-                            shortcutText: "Ctrl+Shift+O"
-                            onTriggered: root.openFolderPicker()
-                        }
-
-                        CachyMenuSeparator {
-                            visible: PlayerSettings.recentFiles.length > 0
-                        }
+                    MediaButton {
+                        id: openBtn
+                        iconName: "document-open"
+                        tooltipText: qsTr("Abrir...")
+                        onClicked: openMenu.open()
+                        anchors.verticalCenter: parent.verticalCenter
 
                         CachyMenu {
-                            id: recentSubMenu
-                            title: qsTr("Archivos recientes")
-                            icon.name: "document-open-recent"
-                            visible: PlayerSettings.recentFiles.length > 0
+                            id: openMenu
+                            y: -implicitHeight - 6
 
-                            Instantiator {
-                                model: PlayerSettings.recentFiles
-                                delegate: CachyMenuItem {
-                                    required property string modelData
-                                    text: {
-                                        var parts = modelData.split("/")
-                                        return parts[parts.length - 1]
+                            CachyMenuItem {
+                                text: qsTr("Abrir archivo(s)...")
+                                iconName: "document-open"
+                                shortcutText: "Ctrl+O"
+                                onTriggered: root.openFilePicker()
+                            }
+
+                            CachyMenuItem {
+                                text: qsTr("Abrir carpeta...")
+                                iconName: "folder-open"
+                                shortcutText: "Ctrl+Shift+O"
+                                onTriggered: root.openFolderPicker()
+                            }
+
+                            CachyMenuSeparator {
+                                visible: PlayerSettings.recentFiles.length > 0
+                            }
+
+                            CachyMenu {
+                                id: recentSubMenu
+                                title: qsTr("Archivos recientes")
+                                icon.name: "document-open-recent"
+                                visible: PlayerSettings.recentFiles.length > 0
+
+                                Instantiator {
+                                    model: PlayerSettings.recentFiles
+                                    delegate: CachyMenuItem {
+                                        required property string modelData
+                                        text: {
+                                            var parts = modelData.split("/")
+                                            return parts[parts.length - 1]
+                                        }
+                                        onTriggered: root.openRecentRequested(modelData)
                                     }
-                                    onTriggered: root.openRecentRequested(modelData)
+                                    onObjectAdded: (index, object) => recentSubMenu.addItem(object)
+                                    onObjectRemoved: (index, object) => recentSubMenu.removeItem(object)
                                 }
-                                onObjectAdded: (index, object) => recentSubMenu.addItem(object)
-                                onObjectRemoved: (index, object) => recentSubMenu.removeItem(object)
                             }
                         }
                     }
+
+                    MediaButton {
+                        id: subBtn
+                        iconName: "media-view-subtitles"
+                        tooltipText: qsTr("Subtítulos")
+                        onClicked: root.openTracksMenu("sub", subBtn)
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    MediaButton {
+                        id: audioBtn
+                        iconName: "audio-speakers"
+                        tooltipText: qsTr("Pistas de audio")
+                        onClicked: root.openTracksMenu("audio", audioBtn)
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    MediaButton {
+                        id: playlistBtn
+                        iconName: "media-playlist-normal"
+                        tooltipText: qsTr("Lista de reproducción")
+                        onClicked: root.openPlaylist()
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
 
-                MediaButton {
-                    id: subBtn
-                    iconName: "media-view-subtitles"
-                    tooltipText: qsTr("Subtítulos")
-                    onClicked: root.openTracksMenu("sub", subBtn)
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                MediaButton {
-                    id: audioBtn
-                    iconName: "audio-speakers"
-                    tooltipText: qsTr("Pistas de audio")
-                    onClicked: root.openTracksMenu("audio", audioBtn)
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                MediaButton {
-                    id: playlistBtn
-                    iconName: "media-playlist-normal"
-                    tooltipText: qsTr("Lista de reproducción")
-                    onClicked: root.openPlaylist()
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                Item { Layout.fillWidth: true }
-
-                // CENTER CLUSTER: QuickTime Playback Transport (Seek -10s, Play/Pause, Seek +10s)
+                // CENTER CLUSTER: Perfectly Centered QuickTime Playback Transport (Seek -10s, Play/Pause, Seek +10s)
                 Row {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 8
+                    anchors.centerIn: parent
+                    spacing: 10
 
                     MediaButton {
                         iconName: "media-seek-backward"
@@ -219,11 +222,11 @@ Item {
 
                     MediaButton {
                         primary: true
-                        implicitWidth: 36
-                        implicitHeight: 36
-                        radius: 18
+                        implicitWidth: 38
+                        implicitHeight: 38
+                        radius: 19
                         iconName: root.isPaused ? "media-playback-start" : "media-playback-pause"
-                        iconSize: 18
+                        iconSize: 20
                         tooltipText: root.isPaused ? qsTr("Reproducir") : qsTr("Pausar")
                         onClicked: root.playPauseClicked()
                         anchors.verticalCenter: parent.verticalCenter
@@ -238,45 +241,53 @@ Item {
                     }
                 }
 
-                Item { Layout.fillWidth: true }
+                // RIGHT CLUSTER: Audio Volume with Tooltip, PiP, Fullscreen & Preferences
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
 
-                // RIGHT CLUSTER: Audio Volume, Fullscreen & Preferences
-                MediaButton {
-                    iconName: root.isMuted || root.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
-                    tooltipText: qsTr("Silenciar")
-                    onClicked: root.muteToggled()
-                    Layout.alignment: Qt.AlignVCenter
-                }
+                    MediaButton {
+                        iconName: root.isMuted || root.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
+                        tooltipText: root.isMuted ? qsTr("Reactivar sonido") : qsTr("Silenciar")
+                        onClicked: root.muteToggled()
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                CachySlider {
-                    id: volumeSlider
-                    Layout.preferredWidth: 64
-                    Layout.alignment: Qt.AlignVCenter
-                    from: 0
-                    to: 150
-                    value: root.volume
-                    onMoved: root.userVolumeChanged(value)
-                }
+                    CachySlider {
+                        id: volumeSlider
+                        width: 90
+                        anchors.verticalCenter: parent.verticalCenter
+                        from: 0
+                        to: 150
+                        value: root.volume
+                        onMoved: root.userVolumeChanged(value)
 
-                MediaButton {
-                    iconName: "picture-in-picture"
-                    tooltipText: qsTr("Picture in Picture (PiP)")
-                    onClicked: root.togglePip()
-                    Layout.alignment: Qt.AlignVCenter
-                }
+                        ToolTip.visible: hovered || pressed
+                        ToolTip.text: qsTr("Volumen: %1%").arg(Math.round(value))
+                        ToolTip.delay: 200
+                    }
 
-                MediaButton {
-                    iconName: "view-fullscreen"
-                    tooltipText: qsTr("Pantalla completa")
-                    onClicked: root.toggleFullscreen()
-                    Layout.alignment: Qt.AlignVCenter
-                }
+                    MediaButton {
+                        iconName: "picture-in-picture"
+                        tooltipText: qsTr("Picture in Picture (PiP)")
+                        onClicked: root.togglePip()
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                MediaButton {
-                    iconName: "configure"
-                    tooltipText: qsTr("Ajustes")
-                    onClicked: root.openPreferences()
-                    Layout.alignment: Qt.AlignVCenter
+                    MediaButton {
+                        iconName: "view-fullscreen"
+                        tooltipText: qsTr("Pantalla completa")
+                        onClicked: root.toggleFullscreen()
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    MediaButton {
+                        iconName: "configure"
+                        tooltipText: qsTr("Ajustes")
+                        onClicked: root.openPreferences()
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
             }
         }

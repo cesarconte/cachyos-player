@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import CachyOS.UI
 import org.cachyos.player
 
@@ -57,6 +58,165 @@ CachyWindow {
             if (!isFullscreen && !isPip && window.width > 400 && window.height > 300) {
                 PlayerSettings.windowWidth = window.width
                 PlayerSettings.windowHeight = window.height
+            }
+        }
+    }
+
+    // Native macOS / KDE Plasma Global Menu Bar (QuickTime Player structure)
+    Platform.MenuBar {
+        Platform.Menu {
+            title: qsTr("&Archivo")
+
+            Platform.MenuItem {
+                text: qsTr("Abrir archivo(s)...")
+                shortcut: "Ctrl+O"
+                onTriggered: {
+                    dialogHelper.isPlaylistMode = false
+                    dialogHelper.openFiles()
+                }
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Abrir carpeta / temporada...")
+                shortcut: "Ctrl+Shift+O"
+                onTriggered: {
+                    dialogHelper.isPlaylistMode = false
+                    dialogHelper.openFolder()
+                }
+            }
+
+            Platform.Menu {
+                id: globalRecentMenu
+                title: qsTr("Abrir recientes")
+                enabled: PlayerSettings.recentFiles.length > 0
+
+                Instantiator {
+                    model: PlayerSettings.recentFiles
+                    delegate: Platform.MenuItem {
+                        required property string modelData
+                        text: {
+                            var parts = modelData.split("/")
+                            return parts[parts.length - 1]
+                        }
+                        onTriggered: mpvController.openFile(modelData)
+                    }
+                    onObjectAdded: (index, object) => globalRecentMenu.addItem(object)
+                    onObjectRemoved: (index, object) => globalRecentMenu.removeItem(object)
+                }
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Cerrar")
+                shortcut: "Ctrl+W"
+                onTriggered: mpvController.stop()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Salir")
+                shortcut: "Ctrl+Q"
+                onTriggered: Qt.quit()
+            }
+        }
+
+        Platform.Menu {
+            title: qsTr("&Reproducción")
+
+            Platform.MenuItem {
+                text: mpvController.paused ? qsTr("Reproducir") : qsTr("Pausar")
+                shortcut: "Space"
+                onTriggered: mpvController.togglePause()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Detener")
+                onTriggered: mpvController.stop()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Avanzar 10 segundos")
+                shortcut: "Right"
+                onTriggered: mpvController.seekRelative(10)
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Retroceder 10 segundos")
+                shortcut: "Left"
+                onTriggered: mpvController.seekRelative(-10)
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Capítulo siguiente")
+                shortcut: "Shift+N"
+                onTriggered: mpvController.nextChapter()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Capítulo anterior")
+                shortcut: "Shift+P"
+                onTriggered: mpvController.previousChapter()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Subir volumen")
+                shortcut: "Up"
+                onTriggered: mpvController.volume = Math.min(150, mpvController.volume + 5)
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Bajar volumen")
+                shortcut: "Down"
+                onTriggered: mpvController.volume = Math.max(0, mpvController.volume - 5)
+            }
+
+            Platform.MenuItem {
+                text: mpvController.muted ? qsTr("Reactivar sonido") : qsTr("Silenciar")
+                shortcut: "M"
+                onTriggered: mpvController.muted = !mpvController.muted
+            }
+        }
+
+        Platform.Menu {
+            title: qsTr("&Visualización")
+
+            Platform.MenuItem {
+                text: window.isFullscreen ? qsTr("Salir de pantalla completa") : qsTr("Pantalla completa")
+                shortcut: "F"
+                onTriggered: window.toggleFullscreen()
+            }
+
+            Platform.MenuItem {
+                text: window.isPip ? qsTr("Desactivar Picture in Picture") : qsTr("Picture in Picture (Siempre visible)")
+                shortcut: "P"
+                onTriggered: window.togglePip()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Lista de reproducción")
+                onTriggered: playlistDrawer.open()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Capturar fotograma")
+                shortcut: "S"
+                onTriggered: mpvController.takeScreenshot()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Preferencias...")
+                shortcut: "Ctrl+,"
+                onTriggered: preferencesDialog.open()
             }
         }
     }
