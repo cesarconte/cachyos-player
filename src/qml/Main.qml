@@ -39,6 +39,8 @@ CachyWindow {
         }
     }
 
+    backgroundColor: mpvController.hasVideo ? "#000000" : "transparent"
+
     MouseArea {
         id: globalMouseArea
         anchors.fill: parent
@@ -75,23 +77,47 @@ CachyWindow {
             controller: mpvController
         }
 
-        // Music Cover Art View
-        Image {
-            id: coverArtImage
+        // Audio / Music Presentation Surface
+        ColumnLayout {
             anchors.centerIn: parent
-            width: Math.min(parent.width * 0.45, 340)
-            height: width
-            fillMode: Image.PreserveAspectFit
-            source: mpvController.coverArtPath
-            visible: mpvController.coverArtPath.length > 0 && !mpvController.hasVideo
-            mipmap: true
+            visible: !mpvController.hasVideo && mpvController.duration > 0
+            spacing: 16
 
             Rectangle {
-                anchors.fill: parent
-                color: "transparent"
+                Layout.alignment: Qt.AlignHCenter
+                width: Math.min(window.width * 0.45, 280)
+                height: width
+                radius: 16
+                color: Qt.rgba(0.12, 0.14, 0.18, 0.75)
                 border.color: Qt.rgba(1, 1, 1, 0.18)
                 border.width: 1
-                radius: 12
+                clip: true
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    source: mpvController.coverArtPath
+                    fillMode: Image.PreserveAspectCrop
+                    visible: mpvController.coverArtPath.length > 0
+                    mipmap: true
+                }
+
+                CachyIcon {
+                    anchors.centerIn: parent
+                    name: "audio-x-generic"
+                    size: 64
+                    color: Qt.rgba(1, 1, 1, 0.5)
+                    visible: mpvController.coverArtPath.length === 0
+                }
+            }
+
+            CachyHeading {
+                Layout.alignment: Qt.AlignHCenter
+                level: 2
+                text: mpvController.mediaTitle
+                color: "white"
+                elide: Text.ElideMiddle
+                Layout.maximumWidth: Math.min(window.width - 80, 500)
             }
         }
 

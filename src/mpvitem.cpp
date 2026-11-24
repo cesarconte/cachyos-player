@@ -1,8 +1,7 @@
 #include "mpvitem.h"
-#include <QQuickWindow>
-#include <QSGSimpleTextureNode>
 #include <QOpenGLContext>
-#include <QOpenGLFunctions>
+#include <QOpenGLFramebufferObject>
+#include <QQuickWindow>
 #include <mpv/render_gl.h>
 #include <QDebug>
 
@@ -14,28 +13,94 @@ static void *get_proc_address_mpv(void *ctx, const char *name)
     return reinterpret_cast<void *>(glctx->getProcAddress(QByteArray(name)));
 }
 
-void MpvItem::on_update(void *ctx)
+class MpvFboRenderer : public QQuickFramebufferObject::Renderer
 {
-    MpvItem *item = static_cast<MpvItem *>(ctx);
-    QMetaObject::invokeMethod(item, [item]() {
-        item->update();
-    }, Qt::QueuedConnection);
-}
+public:
+    MpvFboRenderer(const MpvItem *item)
+        : m_item(item)
+    {
+    }
+
+    ~MpvFboRenderer() override
+    {
+        if (m_mpvGL) {
+            mpv_render_context_free(m_mpvGL);
+            m_mpvGL = nullptr;
+        }
+    }
+
+    static void on_update(void *ctx)
+    {
+        MpvFboRenderer *r = static_cast<MpvFboRenderer *>(ctx);
+        QMetaObject::invokeMethod(const_cast<MpvItem *>(r->m_item), "update", Qt::QueuedConnection);
+    }
+
+    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override
+    {
+        return new QOpenGLFramebufferObject(size, QOpenGLFramebufferObject::NoAttachment);
+    }
+
+    void render() override
+    {
+        if (!m_item || !m_item->controller() || !m_item->controller()->mpv()) {
+            return;
+        }
+
+        if (!m_mpvGL) {
+            mpv_opengl_init_params gl_init_params{get_proc_address_mpv, nullptr};
+            mpv_render_param params[]{
+                {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
+                {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
+                {MPV_RENDER_PARAM_INVALID, nullptr}
+            };
+
+            if (mpv_render_context_create(&m_mpvGL, m_item->controller()->mpv(), params) < 0) {
+                qWarning() << "Failed to initialize mpv render context in FBO";
+                return;
+            }
+
+            mpv_render_context_set_update_callback(m_mpvGL, on_update, this);
+        }
+
+        QOpenGLFramebufferObject *fbo = framebufferObject();
+        if (!fbo) return;
+
+        mpv_opengl_fbo mpvFbo{
+            .fbo = static_cast<int>(fbo->handle()),
+            .w = fbo->width(),
+            .h = fbo->height(),
+            .internal_format = 0
+        };
+
+        int flip_y = 0;
+        mpv_render_param params[] = {
+            {MPV_RENDER_PARAM_OPENGL_FBO, &mpvFbo},
+            {MPV_RENDER_PARAM_FLIP_Y, &flip_y},
+            {MPV_RENDER_PARAM_INVALID, nullptr}
+        };
+
+        mpv_render_context_render(m_mpvGL, params);
+        mpv_render_context_report_swap(m_mpvGL);
+    }
+
+private:
+    const MpvItem *m_item{nullptr};
+    mpv_render_context *m_mpvGL{nullptr};
+};
 
 MpvItem::MpvItem(QQuickItem *parent)
-    : QQuickItem(parent)
+    : QQuickFramebufferObject(parent)
 {
-    setFlag(ItemHasContents, true);
-    setAcceptedMouseButtons(Qt::AllButtons);
-    setAcceptHoverEvents(true);
+    setMirrorVertically(true);
 }
 
 MpvItem::~MpvItem()
 {
-    if (m_mpvGL) {
-        mpv_render_context_free(m_mpvGL);
-        m_mpvGL = nullptr;
-    }
+}
+
+QQuickFramebufferObject::Renderer *MpvItem::createRenderer() const
+{
+    return new MpvFboRenderer(this);
 }
 
 void MpvItem::setController(MpvController *c)
@@ -44,70 +109,4 @@ void MpvItem::setController(MpvController *c)
     m_controller = c;
     Q_EMIT controllerChanged();
     update();
-}
-
-void MpvItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
-{
-    QQuickItem::geometryChange(newGeometry, oldGeometry);
-    update();
-}
-
-void MpvItem::onFrameSwapped()
-{
-    if (m_mpvGL) {
-        mpv_render_context_report_swap(m_mpvGL);
-    }
-}
-
-QSGNode *MpvItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
-{
-    if (!m_controller || !m_controller->mpv() || width() <= 0 || height() <= 0) {
-        delete oldNode;
-        return nullptr;
-    }
-
-    if (!m_initialized) {
-        mpv_opengl_init_params gl_init_params{get_proc_address_mpv, nullptr};
-        mpv_render_param params[]{
-            {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
-            {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
-            {MPV_RENDER_PARAM_INVALID, nullptr}
-        };
-
-        if (mpv_render_context_create(&m_mpvGL, m_controller->mpv(), params) < 0) {
-            qWarning() << "Failed to initialize mpv render context";
-            return oldNode;
-        }
-
-        mpv_render_context_set_update_callback(m_mpvGL, on_update, this);
-        connect(window(), &QQuickWindow::frameSwapped, this, &MpvItem::onFrameSwapped, Qt::DirectConnection);
-        m_initialized = true;
-    }
-
-    // Render texture using Qt Quick scene graph
-    GLint defaultFbo = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFbo);
-
-    mpv_opengl_fbo fbo{
-        .fbo = defaultFbo,
-        .w = static_cast<int>(width() * window()->devicePixelRatio()),
-        .h = static_cast<int>(height() * window()->devicePixelRatio()),
-        .internal_format = 0
-    };
-
-    int flip_y = 1;
-    mpv_render_param params[] = {
-        {MPV_RENDER_PARAM_OPENGL_FBO, &fbo},
-        {MPV_RENDER_PARAM_FLIP_Y, &flip_y},
-        {MPV_RENDER_PARAM_INVALID, nullptr}
-    };
-
-    mpv_render_context_render(m_mpvGL, params);
-
-    // Return empty node to let Qt Quick continue composition
-    QSGNode *node = oldNode;
-    if (!node) {
-        node = new QSGNode();
-    }
-    return node;
 }

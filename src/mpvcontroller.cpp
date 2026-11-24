@@ -346,6 +346,14 @@ void MpvController::detectCoverArt(const QString &filePath)
             break;
         }
     }
+    // Also check for embedded coverart via libmpv property
+    if (m_coverArtPath.isEmpty()) {
+        char *cover = mpv_get_property_string(m_mpv, "cover-art");
+        if (cover) {
+            m_coverArtPath = QString::fromUtf8(cover);
+            mpv_free(cover);
+        }
+    }
     Q_EMIT coverArtPathChanged();
 }
 
