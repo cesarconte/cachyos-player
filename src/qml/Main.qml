@@ -12,10 +12,11 @@ CachyWindow {
     minimumHeight: 340
     title: mpvController.mediaTitle.length > 0 ? mpvController.mediaTitle + " - CachyOS Player" : "CachyOS Player"
     showTitleBarDivider: false
-    showTrafficLights: !isFullscreen
-    showContentTitleBar: !isFullscreen
-    showWindowFrame: !isFullscreen
-    cornerRadius: isFullscreen ? 0 : 20
+    showTrafficLights: !isFullscreen && !isPip
+    showContentTitleBar: !isFullscreen && !isPip
+    showWindowFrame: !isFullscreen && !isPip
+    cornerRadius: isFullscreen ? 0 : (isPip ? 14 : 20)
+    flags: isPip ? (Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint) : Qt.Window
 
     headerCenter: CachyLabel {
         text: window.title
@@ -30,6 +31,33 @@ CachyWindow {
     }
 
     property bool isFullscreen: false
+    property bool isPip: false
+    property var savedGeometry: ({ width: 1080, height: 640, x: 100, y: 100 })
+
+    Component.onCompleted: {
+        var s = PlayerSettings
+        var savedW = s.windowWidth
+        var savedH = s.windowHeight
+        if (savedW > 400 && savedH > 300) {
+            window.width = savedW
+            window.height = savedH
+        }
+    }
+
+    onWidthChanged: saveWindowGeometryTimer.restart()
+    onHeightChanged: saveWindowGeometryTimer.restart()
+
+    Timer {
+        id: saveWindowGeometryTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            if (!isFullscreen && !isPip && window.width > 400 && window.height > 300) {
+                PlayerSettings.windowWidth = window.width
+                PlayerSettings.windowHeight = window.height
+            }
+        }
+    }
 
     // Standard mpv / macOS Keyboard Shortcuts
     Shortcut {
@@ -101,6 +129,10 @@ CachyWindow {
     Shortcut {
         sequence: "Ctrl+,"
         onActivated: preferencesDialog.open()
+    }
+    Shortcut {
+        sequence: "p"
+        onActivated: togglePip()
     }
 
 
@@ -360,6 +392,7 @@ CachyWindow {
                 dialogHelper.openFolder()
             }
             onToggleFullscreen: window.toggleFullscreen()
+            onTogglePip: window.togglePip()
             onOpenPreferences: preferencesDialog.open()
 
             onOpenPlaylist: playlistDrawer.open()
@@ -478,6 +511,40 @@ CachyWindow {
             if (mpvController.duration > 0) {
                 hudPill.show("speedometer", qsTr("Velocidad: %1x").arg(mpvController.playbackSpeed.toFixed(2)))
             }
+        }
+        function onVideoSizeChanged() {
+            if (PlayerSettings.autoFitWindow && !isFullscreen && !isPip && mpvController.hasVideo && mpvController.videoWidth > 0 && mpvController.videoHeight > 0) {
+                var aspect = mpvController.videoAspect > 0 ? mpvController.videoAspect : (mpvController.videoWidth / mpvController.videoHeight)
+                var currentW = window.width
+                var calculatedH = Math.round(currentW / aspect)
+                if (calculatedH >= 340 && calculatedH <= 1200) {
+                    window.height = calculatedH
+                }
+            }
+        }
+    }
+
+    function togglePip() {
+        if (isFullscreen) {
+            window.showNormal()
+            isFullscreen = false
+        }
+
+        if (isPip) {
+            isPip = false
+            window.width = savedGeometry.width
+            window.height = savedGeometry.height
+            window.x = savedGeometry.x
+            window.y = savedGeometry.y
+            hudPill.show("picture-in-picture", qsTr("Modo estándar"))
+        } else {
+            savedGeometry = { width: window.width, height: window.height, x: window.x, y: window.y }
+            isPip = true
+            var pipW = 420
+            var pipAspect = mpvController.videoAspect > 0 ? mpvController.videoAspect : (16.0 / 9.0)
+            window.width = pipW
+            window.height = Math.round(pipW / pipAspect)
+            hudPill.show("picture-in-picture", qsTr("Picture in Picture"))
         }
     }
 

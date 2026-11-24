@@ -26,6 +26,9 @@ class MpvController : public QObject
     Q_PROPERTY(double playbackSpeed READ playbackSpeed WRITE setPlaybackSpeed NOTIFY playbackSpeedChanged)
     Q_PROPERTY(bool eofReached READ eofReached NOTIFY eofReachedChanged)
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
+    Q_PROPERTY(int videoWidth READ videoWidth NOTIFY videoSizeChanged)
+    Q_PROPERTY(int videoHeight READ videoHeight NOTIFY videoSizeChanged)
+    Q_PROPERTY(double videoAspect READ videoAspect NOTIFY videoSizeChanged)
     Q_PROPERTY(QString coverArtPath READ coverArtPath NOTIFY coverArtPathChanged)
 
 public:
@@ -62,6 +65,9 @@ public:
 
     bool eofReached() const { return m_eofReached; }
     bool hasVideo() const { return m_hasVideo; }
+    int videoWidth() const { return m_videoWidth; }
+    int videoHeight() const { return m_videoHeight; }
+    double videoAspect() const { return m_videoAspect; }
     QString coverArtPath() const { return m_coverArtPath; }
 
     Q_INVOKABLE void openFile(const QString &fileOrUrl);
@@ -98,6 +104,7 @@ Q_SIGNALS:
     void playbackSpeedChanged();
     void eofReachedChanged();
     void hasVideoChanged();
+    void videoSizeChanged();
     void coverArtPathChanged();
     void fileLoaded(const QString &path);
     void mpvRedrawRequested();
@@ -131,6 +138,9 @@ private:
     double m_playbackSpeed{1.0};
     bool m_eofReached{false};
     bool m_hasVideo{false};
+    int m_videoWidth{0};
+    int m_videoHeight{0};
+    double m_videoAspect{1.7777};
     QString m_coverArtPath;
     QString m_pendingFile;
 };

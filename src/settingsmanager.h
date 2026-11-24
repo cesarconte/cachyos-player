@@ -10,6 +10,9 @@ class SettingsManager : public QObject
     Q_OBJECT
 
     // === 1. General & Video ===
+    Q_PROPERTY(int windowWidth READ windowWidth WRITE setWindowWidth NOTIFY windowGeometryChanged)
+    Q_PROPERTY(int windowHeight READ windowHeight WRITE setWindowHeight NOTIFY windowGeometryChanged)
+    Q_PROPERTY(bool autoFitWindow READ autoFitWindow WRITE setAutoFitWindow NOTIFY autoFitWindowChanged)
     Q_PROPERTY(QString profile READ profile WRITE setProfile NOTIFY profileChanged)
     Q_PROPERTY(QString vo READ vo WRITE setVo NOTIFY voChanged)
     Q_PROPERTY(QString gpuApi READ gpuApi WRITE setGpuApi NOTIFY gpuApiChanged)
@@ -77,6 +80,15 @@ public:
     explicit SettingsManager(QObject *parent = nullptr);
 
     // Getters & Setters - Video
+    int windowWidth() const { return m_settings.value(QStringLiteral("window/width"), 1080).toInt(); }
+    void setWindowWidth(int v) { setVal(QStringLiteral("window/width"), v); Q_EMIT windowGeometryChanged(); }
+
+    int windowHeight() const { return m_settings.value(QStringLiteral("window/height"), 640).toInt(); }
+    void setWindowHeight(int v) { setVal(QStringLiteral("window/height"), v); Q_EMIT windowGeometryChanged(); }
+
+    bool autoFitWindow() const { return m_settings.value(QStringLiteral("window/autoFit"), true).toBool(); }
+    void setAutoFitWindow(bool v) { setVal(QStringLiteral("window/autoFit"), v); Q_EMIT autoFitWindowChanged(); }
+
     QString profile() const { return m_settings.value(QStringLiteral("video/profile"), QStringLiteral("high-quality")).toString(); }
     void setProfile(const QString &v) { setVal(QStringLiteral("video/profile"), v); Q_EMIT profileChanged(); }
 
@@ -255,6 +267,8 @@ public:
     Q_INVOKABLE void resetToDefaults();
 
 Q_SIGNALS:
+    void windowGeometryChanged();
+    void autoFitWindowChanged();
     void profileChanged();
     void voChanged();
     void gpuApiChanged();

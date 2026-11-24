@@ -24,6 +24,7 @@ Item {
     signal openFilePicker()
     signal openFolderPicker()
     signal toggleFullscreen()
+    signal togglePip()
 
     function formatTime(seconds) {
         if (isNaN(seconds) || seconds < 0) return "00:00"
@@ -205,6 +206,13 @@ Item {
                     to: 150
                     value: root.volume
                     onMoved: root.userVolumeChanged(value)
+                }
+
+                MediaButton {
+                    iconName: "picture-in-picture"
+                    tooltipText: qsTr("Picture in Picture (PiP)")
+                    onClicked: root.togglePip()
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 MediaButton {

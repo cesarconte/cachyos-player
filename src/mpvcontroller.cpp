@@ -56,6 +56,9 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "playlist-pos", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
+    mpv_observe_property(m_mpv, 0, "dwidth", MPV_FORMAT_INT64);
+    mpv_observe_property(m_mpv, 0, "dheight", MPV_FORMAT_INT64);
+    mpv_observe_property(m_mpv, 0, "video-aspect-override", MPV_FORMAT_DOUBLE);
 
     connect(&m_eventTimer, &QTimer::timeout, this, &MpvController::handleMpvEvents);
     m_eventTimer.start(25);
@@ -277,6 +280,18 @@ void MpvController::handleMpvEvents()
             } else if (strcmp(prop->name, "playlist-pos") == 0 && prop->format == MPV_FORMAT_INT64) {
                 m_playlistCurrentIndex = static_cast<int>(*static_cast<int64_t *>(prop->data));
                 Q_EMIT playlistCurrentIndexChanged();
+            } else if (strcmp(prop->name, "dwidth") == 0 && prop->format == MPV_FORMAT_INT64) {
+                m_videoWidth = static_cast<int>(*static_cast<int64_t *>(prop->data));
+                if (m_videoWidth > 0 && m_videoHeight > 0) {
+                    m_videoAspect = static_cast<double>(m_videoWidth) / static_cast<double>(m_videoHeight);
+                }
+                Q_EMIT videoSizeChanged();
+            } else if (strcmp(prop->name, "dheight") == 0 && prop->format == MPV_FORMAT_INT64) {
+                m_videoHeight = static_cast<int>(*static_cast<int64_t *>(prop->data));
+                if (m_videoWidth > 0 && m_videoHeight > 0) {
+                    m_videoAspect = static_cast<double>(m_videoWidth) / static_cast<double>(m_videoHeight);
+                }
+                Q_EMIT videoSizeChanged();
             }
             break;
         }
