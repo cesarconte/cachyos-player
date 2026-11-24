@@ -5,6 +5,7 @@
 #include <QIcon>
 #include <QQuickWindow>
 #include <QQuickStyle>
+#include <KLocalizedString>
 
 #include "mpvcontroller.h"
 #include "mpvitem.h"
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
     QGuiApplication::setApplicationDisplayName(QStringLiteral("CachyOS Player"));
 
     QGuiApplication app(argc, argv);
+    KLocalizedString::setApplicationDomain("cachyos-player");
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("multimedia-video-player"), QIcon(QStringLiteral(":/icons/cachyos-player.png"))));
 
     // Register QML types

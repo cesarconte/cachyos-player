@@ -9,8 +9,8 @@ class PortalResponseWatcher : public QObject
 {
     Q_OBJECT
 public:
-    PortalResponseWatcher(NativeDialogHelper *helper, const QString &path, bool isDir, QObject *parent = nullptr)
-        : QObject(parent), m_helper(helper), m_path(path), m_isDir(isDir) {}
+    PortalResponseWatcher(NativeDialogHelper *helper, const QString &path, bool isDir, bool isSingleFile = false, QObject *parent = nullptr)
+        : QObject(parent), m_helper(helper), m_path(path), m_isDir(isDir), m_isSingleFile(isSingleFile) {}
 
 public Q_SLOTS:
     void onResponse(uint response, const QVariantMap &results) {
@@ -21,6 +21,12 @@ public Q_SLOTS:
                     QString dirUri = uris.first();
                     QString localPath = dirUri.startsWith(QStringLiteral("file://")) ? QUrl(dirUri).toLocalFile() : dirUri;
                     Q_EMIT m_helper->folderSelected(localPath);
+                }
+            } else if (m_isSingleFile) {
+                if (!uris.isEmpty()) {
+                    QString fileUri = uris.first();
+                    QString localPath = fileUri.startsWith(QStringLiteral("file://")) ? QUrl(fileUri).toLocalFile() : fileUri;
+                    Q_EMIT m_helper->fileSelected(localPath);
                 }
             } else {
                 QStringList paths;
@@ -39,6 +45,7 @@ private:
     NativeDialogHelper *m_helper;
     QString m_path;
     bool m_isDir;
+    bool m_isSingleFile;
 };
 
 NativeDialogHelper::NativeDialogHelper(QObject *parent)
@@ -54,6 +61,11 @@ void NativeDialogHelper::openFolder(const QString &title)
 void NativeDialogHelper::openFiles(const QString &title, const QString &/*filter*/)
 {
     callPortalOpenFile(title.isEmpty() ? QStringLiteral("Abrir vídeo(s) o audio(s)") : title, false, true);
+}
+
+void NativeDialogHelper::openSingleFile(const QString &title, const QString &/*filter*/)
+{
+    callPortalOpenFile(title.isEmpty() ? QStringLiteral("Seleccionar archivo") : title, false, false);
 }
 
 void NativeDialogHelper::callPortalOpenFile(const QString &title, bool directory, bool multiple)
@@ -85,7 +97,8 @@ void NativeDialogHelper::callPortalOpenFile(const QString &title, bool directory
     QDBusObjectPath handle = reply.arguments().at(0).value<QDBusObjectPath>();
     QString requestPath = handle.path();
 
-    auto *watcher = new PortalResponseWatcher(this, requestPath, directory);
+    bool isSingle = !directory && !multiple;
+    auto *watcher = new PortalResponseWatcher(this, requestPath, directory, isSingle);
     QDBusConnection::sessionBus().connect(
         QStringLiteral("org.freedesktop.portal.Desktop"),
         requestPath,

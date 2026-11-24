@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import CachyOS.UI
 import org.cachyos.player
 
@@ -129,17 +128,15 @@ CachyPopover {
                 text: qsTr("Cargar archivo...")
                 iconName: "document-open"
                 visible: root.trackType === "sub"
-                onClicked: subFileDialog.open()
+                onClicked: subDialogHelper.openSingleFile(qsTr("Seleccionar archivo de subtítulos"), qsTr("Subtítulos (*.srt *.ass *.ssa *.vtt *.sub)"))
             }
         }
     }
 
-    FileDialog {
-        id: subFileDialog
-        title: qsTr("Seleccionar archivo de subtítulos")
-        nameFilters: [qsTr("Subtítulos (*.srt *.ass *.ssa *.vtt *.sub)"), qsTr("Todos los archivos (*)")]
-        onAccepted: {
-            mpvController.command(["sub-add", subFileDialog.selectedFile.toString().replace("file://", ""), "select"])
+    NativeDialogHelper {
+        id: subDialogHelper
+        onFileSelected: (filePath) => {
+            mpvController.command(["sub-add", filePath, "select"])
             root.close()
         }
     }

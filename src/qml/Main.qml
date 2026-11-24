@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import CachyOS.UI
 import org.cachyos.player
 
@@ -113,6 +112,33 @@ CachyWindow {
                 mpvController.openFile(initialFileUrl)
             }
         }
+    }
+
+    Connections {
+        target: PlayerSettings
+        function onScaleChanged() { mpvController.setProperty("scale", PlayerSettings.scale) }
+        function onCscaleChanged() { mpvController.setProperty("cscale", PlayerSettings.cscale) }
+        function onHwdecChanged() { mpvController.setProperty("hwdec", PlayerSettings.hwdec) }
+        function onDebandChanged() { mpvController.setProperty("deband", PlayerSettings.deband) }
+        function onInterpolationChanged() { mpvController.setProperty("interpolation", PlayerSettings.interpolation) }
+        function onVideoSyncChanged() { mpvController.setProperty("video-sync", PlayerSettings.videoSync) }
+        function onSubScaleChanged() { mpvController.setProperty("sub-scale", PlayerSettings.subScale) }
+        function onSubFontChanged() { mpvController.setProperty("sub-font", PlayerSettings.subFont) }
+        function onSubFontSizeChanged() { mpvController.setProperty("sub-font-size", PlayerSettings.subFontSize) }
+        function onSubColorChanged() { mpvController.setProperty("sub-color", PlayerSettings.subColor) }
+        function onSubBoldChanged() { mpvController.setProperty("sub-bold", PlayerSettings.subBold) }
+        function onSubItalicChanged() { mpvController.setProperty("sub-italic", PlayerSettings.subItalic) }
+        function onSubSpacingChanged() { mpvController.setProperty("sub-spacing", PlayerSettings.subSpacing) }
+        function onSubLineSpacingChanged() { mpvController.setProperty("sub-line-spacing", PlayerSettings.subLineSpacing) }
+        function onSubBorderSizeChanged() { mpvController.setProperty("sub-border-size", PlayerSettings.subBorderSize) }
+        function onSubBorderColorChanged() { mpvController.setProperty("sub-border-color", PlayerSettings.subBorderColor) }
+        function onSubShadowOffsetChanged() { mpvController.setProperty("sub-shadow-offset", PlayerSettings.subShadowOffset) }
+        function onSubShadowColorChanged() { mpvController.setProperty("sub-shadow-color", PlayerSettings.subShadowColor) }
+        function onSubBlurChanged() { mpvController.setProperty("sub-blur", PlayerSettings.subBlur) }
+        function onSubMarginYChanged() { mpvController.setProperty("sub-margin-y", PlayerSettings.subMarginY) }
+        function onBlendSubtitlesChanged() { mpvController.setProperty("blend-subtitles", PlayerSettings.blendSubtitles) }
+        function onSlangChanged() { mpvController.setProperty("slang", PlayerSettings.slang) }
+        function onAlangChanged() { mpvController.setProperty("alang", PlayerSettings.alang) }
     }
 
     MprisManager {
@@ -351,34 +377,7 @@ CachyWindow {
         }
     }
 
-    // Native multi-file picker
-    FileDialog {
-        id: fileDialog
-        title: qsTr("Abrir vídeo(s) o audio(s)")
-        fileMode: FileDialog.OpenFiles
-        nameFilters: [
-            qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.wav *.ogg *.opus *.m4v *.ts *.m2ts)"),
-            qsTr("Todos los archivos (*)")
-        ]
-        onAccepted: {
-            if (fileDialog.selectedFiles && fileDialog.selectedFiles.length > 0) {
-                mpvController.openFiles(fileDialog.selectedFiles)
-            } else if (fileDialog.selectedFile) {
-                mpvController.openFile(fileDialog.selectedFile)
-            }
-        }
-    }
 
-    // Native folder picker (e.g. whole season or music album)
-    FolderDialog {
-        id: folderDialog
-        title: qsTr("Abrir carpeta / temporada")
-        onAccepted: {
-            if (folderDialog.selectedFolder) {
-                mpvController.openFiles([folderDialog.selectedFolder])
-            }
-        }
-    }
 
     
         // macOS / uosc HUD Pill (Volume, Speed, Seek indicator)
@@ -464,21 +463,7 @@ CachyWindow {
         }
     }
 
-    FileDialog {
-        id: playlistFileDialog
-        title: qsTr("Añadir archivo(s) a la lista")
-        fileMode: FileDialog.OpenFiles
-        nameFilters: [qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.ogg)"), qsTr("Todos los archivos (*)")]
-        onAccepted: {
-            if (playlistFileDialog.selectedFiles && playlistFileDialog.selectedFiles.length > 0) {
-                for (var i = 0; i < playlistFileDialog.selectedFiles.length; ++i) {
-                    mpvController.addFileToPlaylist(playlistFileDialog.selectedFiles[i].toString())
-                }
-            } else if (playlistFileDialog.selectedFile) {
-                mpvController.addFileToPlaylist(playlistFileDialog.selectedFile.toString())
-            }
-        }
-    }
+
 
 
     Connections {
