@@ -11,6 +11,7 @@
 #include "mprismanager.h"
 #include "settingsmanager.h"
 #include "subsyncmanager.h"
+#include "dialoghelper.h"
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<MpvItem>("org.cachyos.player", 1, 0, "MpvItem");
     qmlRegisterType<MpvController>("org.cachyos.player", 1, 0, "MpvController");
     qmlRegisterType<MprisManager>("org.cachyos.player", 1, 0, "MprisManager");
+    qmlRegisterType<NativeDialogHelper>("org.cachyos.player", 1, 0, "NativeDialogHelper");
     qmlRegisterSingletonType<SettingsManager>("org.cachyos.player", 1, 0, "PlayerSettings",
         [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
             Q_UNUSED(engine);

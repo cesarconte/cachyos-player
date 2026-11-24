@@ -93,11 +93,11 @@ CachyWindow {
     }
     Shortcut {
         sequence: "Ctrl+O"
-        onActivated: fileDialog.open()
+        onActivated: dialogHelper.openFiles()
     }
     Shortcut {
         sequence: "Ctrl+Shift+O"
-        onActivated: folderDialog.open()
+        onActivated: dialogHelper.openFolder()
     }
     Shortcut {
         sequence: "Ctrl+,"
@@ -124,6 +124,31 @@ CachyWindow {
         }
         onQuitRequested: {
             Qt.quit()
+        }
+    }
+
+    NativeDialogHelper {
+        id: dialogHelper
+        property bool isPlaylistMode: false
+
+        onFolderSelected: (folderPath) => {
+            if (isPlaylistMode) {
+                mpvController.addFileToPlaylist(folderPath)
+            } else {
+                mpvController.openFiles([folderPath])
+            }
+            isPlaylistMode = false
+        }
+
+        onFilesSelected: (filePaths) => {
+            if (isPlaylistMode) {
+                for (var i = 0; i < filePaths.length; ++i) {
+                    mpvController.addFileToPlaylist(filePaths[i])
+                }
+            } else {
+                mpvController.openFiles(filePaths)
+            }
+            isPlaylistMode = false
         }
     }
 
@@ -268,7 +293,10 @@ CachyWindow {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Seleccionar archivo...")
                 iconName: "document-open"
-                onClicked: fileDialog.open()
+                onClicked: {
+                    dialogHelper.isPlaylistMode = false
+                    dialogHelper.openFiles()
+                }
             }
         }
 
@@ -297,8 +325,14 @@ CachyWindow {
             onSeekRelative: (sec) => mpvController.seekRelative(sec)
             onUserVolumeChanged: (vol) => mpvController.volume = vol
             onMuteToggled: mpvController.muted = !mpvController.muted
-            onOpenFilePicker: fileDialog.open()
-            onOpenFolderPicker: folderDialog.open()
+            onOpenFilePicker: {
+                dialogHelper.isPlaylistMode = false
+                dialogHelper.openFiles()
+            }
+            onOpenFolderPicker: {
+                dialogHelper.isPlaylistMode = false
+                dialogHelper.openFolder()
+            }
             onToggleFullscreen: window.toggleFullscreen()
             onOpenPreferences: preferencesDialog.open()
 
@@ -420,7 +454,14 @@ CachyWindow {
         onItemSelected: (index) => mpvController.playPlaylistItem(index)
         onItemRemoved: (index) => mpvController.removePlaylistItem(index)
         onClearRequested: mpvController.clearPlaylist()
-        onAddFileRequested: playlistFileDialog.open()
+        onAddFileRequested: {
+            dialogHelper.isPlaylistMode = true
+            dialogHelper.openFiles()
+        }
+        onAddFolderRequested: {
+            dialogHelper.isPlaylistMode = true
+            dialogHelper.openFolder()
+        }
     }
 
     FileDialog {

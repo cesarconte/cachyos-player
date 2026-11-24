@@ -16,6 +16,7 @@ CachyDrawer {
     signal itemSelected(int index)
     signal itemRemoved(int index)
     signal addFileRequested()
+    signal addFolderRequested()
     signal clearRequested()
 
     ColumnLayout {
@@ -33,10 +34,28 @@ CachyDrawer {
             }
 
             CachyToolbarButton {
+                id: addBtn
                 iconName: "list-add"
                 tooltipText: qsTr("Añadir a la lista...")
                 pillStyle: false
-                onClicked: root.addFileRequested()
+                onClicked: addMenu.open()
+
+                CachyMenu {
+                    id: addMenu
+                    y: addBtn.height + 4
+
+                    CachyMenuItem {
+                        text: qsTr("Añadir archivo(s)...")
+                        iconName: "document-open"
+                        onTriggered: root.addFileRequested()
+                    }
+
+                    CachyMenuItem {
+                        text: qsTr("Añadir carpeta / disco...")
+                        iconName: "folder-open"
+                        onTriggered: root.addFolderRequested()
+                    }
+                }
             }
 
             CachyToolbarButton {
