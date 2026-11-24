@@ -168,12 +168,12 @@ CachyPopover {
                     }
 
                     CachyButton {
-                        text: "A−"
-                        Layout.preferredWidth: 34
+                        iconName: "format-font-size-less"
+                        Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
                             var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-                            var nextVal = Math.max(0.5, Math.round((cur - 0.1) * 10) / 10)
+                            var nextVal = Math.max(0.1, Math.round((cur - 0.01) * 100) / 100)
                             mpvController.subScale = nextVal
                             PlayerSettings.subScale = nextVal
                         }
@@ -188,12 +188,12 @@ CachyPopover {
                     }
 
                     CachyButton {
-                        text: "A+"
-                        Layout.preferredWidth: 34
+                        iconName: "format-font-size-more"
+                        Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
                             var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-                            var nextVal = Math.min(3.0, Math.round((cur + 0.1) * 10) / 10)
+                            var nextVal = Math.min(5.0, Math.round((cur + 0.01) * 100) / 100)
                             mpvController.subScale = nextVal
                             PlayerSettings.subScale = nextVal
                         }
@@ -216,7 +216,7 @@ CachyPopover {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
-                            var nextPos = Math.max(0, mpvController.subPos - 5)
+                            var nextPos = Math.max(0, mpvController.subPos - 1)
                             mpvController.subPos = nextPos
                             PlayerSettings.subPos = nextPos
                         }
@@ -235,7 +235,7 @@ CachyPopover {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
-                            var nextPos = Math.min(150, mpvController.subPos + 5)
+                            var nextPos = Math.min(150, mpvController.subPos + 1)
                             mpvController.subPos = nextPos
                             PlayerSettings.subPos = nextPos
                         }

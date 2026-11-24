@@ -342,38 +342,56 @@ CachyWindow {
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+Up"
+        sequence: "x"
         onActivated: {
-            var nextPos = Math.max(0, mpvController.subPos - 5)
-            mpvController.subPos = nextPos
-            PlayerSettings.subPos = nextPos
-            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1%").arg(nextPos))
+            var nextDel = Math.round((mpvController.subDelay + 0.1) * 10) / 10
+            mpvController.subDelay = nextDel
+            PlayerSettings.subDelay = nextDel
+            hudPill.show("media-view-subtitles", qsTr("Subtítulos: %1s").arg((nextDel >= 0 ? "+" : "") + nextDel.toFixed(1)))
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+Down"
+        sequence: "r"
         onActivated: {
-            var nextPos = Math.min(150, mpvController.subPos + 5)
+            var nextPos = Math.max(0, mpvController.subPos - 1)
             mpvController.subPos = nextPos
             PlayerSettings.subPos = nextPos
-            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1%").arg(nextPos))
+            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1").arg(nextPos))
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+["
+        sequence: "Shift+R"
+        onActivated: {
+            var nextPos = Math.min(150, mpvController.subPos + 1)
+            mpvController.subPos = nextPos
+            PlayerSettings.subPos = nextPos
+            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1").arg(nextPos))
+        }
+    }
+    Shortcut {
+        sequence: "t"
+        onActivated: {
+            var nextPos = Math.min(150, mpvController.subPos + 1)
+            mpvController.subPos = nextPos
+            PlayerSettings.subPos = nextPos
+            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1").arg(nextPos))
+        }
+    }
+    Shortcut {
+        sequence: "Shift+F"
         onActivated: {
             var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-            var nextVal = Math.max(0.5, Math.round((cur - 0.1) * 10) / 10)
+            var nextVal = Math.max(0.1, Math.round((cur - 0.05) * 100) / 100)
             mpvController.subScale = nextVal
             PlayerSettings.subScale = nextVal
             hudPill.show("media-view-subtitles", qsTr("Tamaño Sub: %1%").arg(Math.round(nextVal * 100)))
         }
     }
     Shortcut {
-        sequence: "Ctrl+Shift+]"
+        sequence: "Shift+G"
         onActivated: {
             var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-            var nextVal = Math.min(3.0, Math.round((cur + 0.1) * 10) / 10)
+            var nextVal = Math.min(5.0, Math.round((cur + 0.05) * 100) / 100)
             mpvController.subScale = nextVal
             PlayerSettings.subScale = nextVal
             hudPill.show("media-view-subtitles", qsTr("Tamaño Sub: %1%").arg(Math.round(nextVal * 100)))

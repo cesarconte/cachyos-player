@@ -428,9 +428,9 @@ ModalSheet {
 
                     CachyFormSpinBoxDelegate {
                         label: qsTr("Escala de Subtítulos (sub-scale, 50%-300%)")
-                        from: 50
-                        to: 300
-                        stepSize: 10
+                        from: 10
+                        to: 500
+                        stepSize: 1
                         suffix: "%"
                         value: Math.round(PlayerSettings.subScale * 100)
                         onValueModified: (val) => PlayerSettings.subScale = val / 100.0
@@ -522,7 +522,7 @@ ModalSheet {
                         label: qsTr("Posición Vertical en Pantalla (sub-pos, 0=arriba, 100=abajo)")
                         from: 0
                         to: 150
-                        stepSize: 5
+                        stepSize: 1
                         value: PlayerSettings.subPos
                         onValueModified: (val) => PlayerSettings.subPos = val
                     }
