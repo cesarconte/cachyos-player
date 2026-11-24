@@ -105,7 +105,10 @@ void SubSyncManager::syncSubtitle(const QString &videoPath, const QString &subPa
         if (binPath.isEmpty()) binPath = QDir::homePath() + QStringLiteral("/.local/bin/alass-linux64");
         if (binPath.isEmpty()) binPath = QStandardPaths::findExecutable(QStringLiteral("alass"));
 
-        args << m_currentVideo << m_currentSub << m_targetOutput;
+        // Use --no-split and --speed-optimization 1 for lightning-fast synchronization (< 5s)
+        args << QStringLiteral("--no-split")
+             << QStringLiteral("--speed-optimization") << QStringLiteral("1")
+             << m_currentVideo << m_currentSub << m_targetOutput;
     } else {
         binPath = QStandardPaths::findExecutable(QStringLiteral("ffsubsync"));
         if (binPath.isEmpty()) binPath = QDir::homePath() + QStringLiteral("/.local/bin/ffsubsync");
