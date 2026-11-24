@@ -103,11 +103,9 @@ void MpvController::setupMpvOptions()
 {
     QSettings s(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
 
-    // Output driver
-    mpv_set_option_string(m_mpv, "vo", "libmpv");
-
-    // Profile & Video options from mpv.conf
+    // Profile & Video options
     QString profile = s.value(QStringLiteral("video/profile"), QStringLiteral("high-quality")).toString();
+    QString vo = s.value(QStringLiteral("video/vo"), QStringLiteral("gpu-next")).toString();
     QString gpuApi = s.value(QStringLiteral("video/gpuApi"), QStringLiteral("vulkan")).toString();
     QString gpuContext = s.value(QStringLiteral("video/gpuContext"), QStringLiteral("waylandvk")).toString();
     QString hwdec = s.value(QStringLiteral("video/hwdec"), QStringLiteral("auto")).toString();
@@ -120,6 +118,7 @@ void MpvController::setupMpvOptions()
     bool resumePlay = s.value(QStringLiteral("video/resumePlayback"), false).toBool();
 
     mpv_set_option_string(m_mpv, "profile", profile.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "vo", vo.toUtf8().constData());
     mpv_set_option_string(m_mpv, "gpu-api", gpuApi.toUtf8().constData());
     mpv_set_option_string(m_mpv, "gpu-context", gpuContext.toUtf8().constData());
     mpv_set_option_string(m_mpv, "hwdec", hwdec.toUtf8().constData());
@@ -134,61 +133,101 @@ void MpvController::setupMpvOptions()
     // Audio options
     QString ao = s.value(QStringLiteral("audio/ao"), QStringLiteral("pipewire")).toString();
     int maxVol = s.value(QStringLiteral("audio/maxVolume"), 125).toInt();
+    QString audioFileAuto = s.value(QStringLiteral("audio/fileAuto"), QStringLiteral("fuzzy")).toString();
     bool gapless = s.value(QStringLiteral("audio/gapless"), true).toBool();
+    bool adLavcDownmix = s.value(QStringLiteral("audio/adLavcDownmix"), false).toBool();
     int resampleSize = s.value(QStringLiteral("audio/resampleFilterSize"), 32).toInt();
     double resampleCutoff = s.value(QStringLiteral("audio/resampleCutoff"), 0.95).toDouble();
     int resamplePhase = s.value(QStringLiteral("audio/resamplePhaseShift"), 10).toInt();
+    bool resampleLinear = s.value(QStringLiteral("audio/resampleLinear"), false).toBool();
 
     mpv_set_option_string(m_mpv, "ao", ao.toUtf8().constData());
     mpv_set_option_string(m_mpv, "volume-max", QByteArray::number(maxVol).constData());
     mpv_set_option_string(m_mpv, "gapless-audio", gapless ? "yes" : "no");
-    mpv_set_option_string(m_mpv, "audio-file-auto", "fuzzy");
+    mpv_set_option_string(m_mpv, "audio-file-auto", audioFileAuto.toUtf8().constData());
     mpv_set_option_string(m_mpv, "audio-display", "no");
-    mpv_set_option_string(m_mpv, "ad-lavc-downmix", "no");
+    mpv_set_option_string(m_mpv, "ad-lavc-downmix", adLavcDownmix ? "yes" : "no");
 
     mpv_set_option_string(m_mpv, "audio-resample-filter-size", QByteArray::number(resampleSize).constData());
     mpv_set_option_string(m_mpv, "audio-resample-cutoff", QByteArray::number(resampleCutoff).constData());
     mpv_set_option_string(m_mpv, "audio-resample-phase-shift", QByteArray::number(resamplePhase).constData());
-    mpv_set_option_string(m_mpv, "audio-resample-linear", "no");
+    mpv_set_option_string(m_mpv, "audio-resample-linear", resampleLinear ? "yes" : "no");
 
     // Subtitle options
     QString slang = s.value(QStringLiteral("sub/slang"), QStringLiteral("es-ES,es,spa")).toString();
     QString alang = s.value(QStringLiteral("sub/alang"), QStringLiteral("en,eng,es,spa")).toString();
+    bool subDemuxerMkvPreroll = s.value(QStringLiteral("sub/demuxerMkvPreroll"), true).toBool();
+    bool subFixTiming = s.value(QStringLiteral("sub/fixTiming"), false).toBool();
+    QString subAuto = s.value(QStringLiteral("sub/auto"), QStringLiteral("fuzzy")).toString();
+    bool embeddedfonts = s.value(QStringLiteral("sub/embeddedfonts"), true).toBool();
+    bool subScaleWithWindow = s.value(QStringLiteral("sub/scaleWithWindow"), true).toBool();
+    bool subAssScaleWithWindow = s.value(QStringLiteral("sub/assScaleWithWindow"), true).toBool();
+    QString subFontProvider = s.value(QStringLiteral("sub/fontProvider"), QStringLiteral("fontconfig")).toString();
+    bool subAss = s.value(QStringLiteral("sub/ass"), true).toBool();
+    double subScale = s.value(QStringLiteral("sub/scale"), 1.0).toDouble();
+
     QString subFont = s.value(QStringLiteral("sub/font"), QStringLiteral("Netflix Sans Med")).toString();
     int subFontSize = s.value(QStringLiteral("sub/fontSize"), 54).toInt();
     QString subColor = s.value(QStringLiteral("sub/color"), QStringLiteral("#F8F8F8")).toString();
+    bool subBold = s.value(QStringLiteral("sub/bold"), false).toBool();
+    bool subItalic = s.value(QStringLiteral("sub/italic"), false).toBool();
+    double subSpacing = s.value(QStringLiteral("sub/spacing"), 0.0).toDouble();
+    double subLineSpacing = s.value(QStringLiteral("sub/lineSpacing"), 5.0).toDouble();
+    QString subBorderStyle = s.value(QStringLiteral("sub/borderStyle"), QStringLiteral("outline-and-shadow")).toString();
     QString subBorderColor = s.value(QStringLiteral("sub/borderColor"), QStringLiteral("#22000000")).toString();
     double subBorderSize = s.value(QStringLiteral("sub/borderSize"), 0.8).toDouble();
     double subShadowOffset = s.value(QStringLiteral("sub/shadowOffset"), 0.25).toDouble();
+    QString subShadowColor = s.value(QStringLiteral("sub/shadowColor"), QStringLiteral("#CC000000")).toString();
+    double subBlur = s.value(QStringLiteral("sub/blur"), 1.0).toDouble();
     int subMarginY = s.value(QStringLiteral("sub/marginY"), 54).toInt();
     QString subAssOverride = s.value(QStringLiteral("sub/assOverride"), QStringLiteral("scale")).toString();
     bool blendSubs = s.value(QStringLiteral("sub/blendSubtitles"), true).toBool();
 
     mpv_set_option_string(m_mpv, "slang", slang.toUtf8().constData());
     mpv_set_option_string(m_mpv, "alang", alang.toUtf8().constData());
-    mpv_set_option_string(m_mpv, "sub-auto", "fuzzy");
-    mpv_set_option_string(m_mpv, "embeddedfonts", "yes");
+    mpv_set_option_string(m_mpv, "demuxer-mkv-subtitle-preroll", subDemuxerMkvPreroll ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-fix-timing", subFixTiming ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-auto", subAuto.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "embeddedfonts", embeddedfonts ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-scale-with-window", subScaleWithWindow ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-ass-scale-with-window", subAssScaleWithWindow ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-font-provider", subFontProvider.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "sub-ass", subAss ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-scale", QByteArray::number(subScale).constData());
+
     mpv_set_option_string(m_mpv, "sub-font", subFont.toUtf8().constData());
     mpv_set_option_string(m_mpv, "sub-font-size", QByteArray::number(subFontSize).constData());
     mpv_set_option_string(m_mpv, "sub-color", subColor.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "sub-bold", subBold ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-italic", subItalic ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "sub-spacing", QByteArray::number(subSpacing).constData());
+    mpv_set_option_string(m_mpv, "sub-line-spacing", QByteArray::number(subLineSpacing).constData());
+    mpv_set_option_string(m_mpv, "sub-border-style", subBorderStyle.toUtf8().constData());
     mpv_set_option_string(m_mpv, "sub-border-color", subBorderColor.toUtf8().constData());
     mpv_set_option_string(m_mpv, "sub-border-size", QByteArray::number(subBorderSize).constData());
     mpv_set_option_string(m_mpv, "sub-shadow-offset", QByteArray::number(subShadowOffset).constData());
+    mpv_set_option_string(m_mpv, "sub-shadow-color", subShadowColor.toUtf8().constData());
+    mpv_set_option_string(m_mpv, "sub-blur", QByteArray::number(subBlur).constData());
     mpv_set_option_string(m_mpv, "sub-margin-y", QByteArray::number(subMarginY).constData());
     mpv_set_option_string(m_mpv, "sub-ass-override", subAssOverride.toUtf8().constData());
     mpv_set_option_string(m_mpv, "blend-subtitles", blendSubs ? "yes" : "no");
-    mpv_set_option_string(m_mpv, "demuxer-mkv-subtitle-preroll", "yes");
 
-    // Cache & Streaming
+    // Cache, Network & Streaming
+    bool cache = s.value(QStringLiteral("network/cache"), true).toBool();
+    bool cachePause = s.value(QStringLiteral("network/cachePause"), false).toBool();
+    bool prefetchPlaylist = s.value(QStringLiteral("network/prefetchPlaylist"), true).toBool();
+
+    mpv_set_option_string(m_mpv, "cache", cache ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "cache-pause", cachePause ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "prefetch-playlist", prefetchPlaylist ? "yes" : "no");
+    mpv_set_option_string(m_mpv, "keep-open", "yes");
+
     QString ytdlCookies = s.value(QStringLiteral("ytdl/cookies"),
         QStringLiteral("brave:/home/cesar/.config/BraveSoftware/Brave-Origin")).toString();
     if (!ytdlCookies.isEmpty()) {
         QString rawOpt = QStringLiteral("cookies-from-browser=%1").arg(ytdlCookies);
         mpv_set_option_string(m_mpv, "ytdl-raw-options", rawOpt.toUtf8().constData());
     }
-    mpv_set_option_string(m_mpv, "cache", "yes");
-    mpv_set_option_string(m_mpv, "prefetch-playlist", "yes");
-    mpv_set_option_string(m_mpv, "keep-open", "yes");
 }
 
 void MpvController::handleMpvEvents()
