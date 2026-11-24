@@ -5,7 +5,7 @@ import CachyOS.UI
 
 Item {
     id: root
-    height: 84
+    height: 72
 
     property bool isPaused: false
     property double position: 0.0
@@ -39,25 +39,25 @@ Item {
     Rectangle {
         id: capsule
         anchors.centerIn: parent
-        width: Math.min(parent.width - 48, 760)
-        height: 68
-        radius: 34
-        color: Qt.rgba(0.08, 0.09, 0.11, 0.82)
-        border.color: Qt.rgba(1, 1, 1, 0.14)
+        width: Math.min(parent.width - 48, 640)
+        height: 64
+        radius: 32
+        color: Qt.rgba(0.08, 0.09, 0.11, 0.88)
+        border.color: Qt.rgba(1, 1, 1, 0.16)
         border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 20
-            anchors.topMargin: 8
-            anchors.bottomMargin: 8
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.topMargin: 6
+            anchors.bottomMargin: 6
             spacing: 2
 
             // Seekbar and Time Labels
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 12
+                spacing: 8
 
                 CachyLabel {
                     text: root.formatTime(root.position)
@@ -87,7 +87,7 @@ Item {
             // Media & Tool Buttons
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 14
+                spacing: 8
 
                 // Open File
                 CachyToolbarButton {
@@ -116,17 +116,17 @@ Item {
 
                 // Play / Pause central button
                 Rectangle {
-                    width: 36
-                    height: 36
-                    radius: 18
-                    color: Qt.rgba(1, 1, 1, 0.12)
-                    border.color: Qt.rgba(1, 1, 1, 0.22)
+                    width: 32
+                    height: 32
+                    radius: 16
+                    color: Qt.rgba(1, 1, 1, 0.16)
+                    border.color: Qt.rgba(1, 1, 1, 0.25)
                     border.width: 1
 
                     CachyIcon {
                         anchors.centerIn: parent
                         name: root.isPaused ? "media-playback-start" : "media-playback-pause"
-                        size: 18
+                        size: 16
                         color: "white"
                     }
 
@@ -148,7 +148,7 @@ Item {
 
                 CachySlider {
                     id: volumeSlider
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: 70
                     from: 0
                     to: 150
                     value: root.volume

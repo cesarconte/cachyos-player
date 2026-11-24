@@ -4,6 +4,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QTimer>
 #include <mpv/client.h>
 
 class MpvController : public QObject
@@ -22,6 +23,7 @@ class MpvController : public QObject
     Q_PROPERTY(int playlistCurrentIndex READ playlistCurrentIndex NOTIFY playlistCurrentIndexChanged)
     Q_PROPERTY(double playbackSpeed READ playbackSpeed WRITE setPlaybackSpeed NOTIFY playbackSpeedChanged)
     Q_PROPERTY(bool eofReached READ eofReached NOTIFY eofReachedChanged)
+    Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
 
 public:
     explicit MpvController(QObject *parent = nullptr);
@@ -54,6 +56,7 @@ public:
     void setPlaybackSpeed(double speed);
 
     bool eofReached() const { return m_eofReached; }
+    bool hasVideo() const { return m_hasVideo; }
 
     Q_INVOKABLE void openFile(const QString &fileOrUrl);
     Q_INVOKABLE void togglePause();
@@ -83,16 +86,18 @@ Q_SIGNALS:
     void playlistCurrentIndexChanged();
     void playbackSpeedChanged();
     void eofReachedChanged();
+    void hasVideoChanged();
     void fileLoaded(const QString &path);
+
+private Q_SLOTS:
+    void handleMpvEvents();
 
 private:
     void setupMpvOptions();
-    void onMpvEvents();
     void updateTracks();
-    void updateChapters();
-    void updatePlaylist();
 
     mpv_handle *m_mpv{nullptr};
+    QTimer m_eventTimer;
     bool m_paused{false};
     double m_duration{0.0};
     double m_position{0.0};
@@ -106,4 +111,5 @@ private:
     int m_playlistCurrentIndex{-1};
     double m_playbackSpeed{1.0};
     bool m_eofReached{false};
+    bool m_hasVideo{false};
 };
