@@ -109,7 +109,7 @@ CachyWindow {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottomMargin: 20
+            anchors.bottomMargin: 16
             opacity: 1.0
 
             Behavior on opacity {

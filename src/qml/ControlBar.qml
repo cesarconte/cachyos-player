@@ -5,7 +5,7 @@ import CachyOS.UI
 
 Item {
     id: root
-    height: 72
+    implicitHeight: 96
 
     property bool isPaused: false
     property double position: 0.0
@@ -39,35 +39,35 @@ Item {
     Rectangle {
         id: capsule
         anchors.centerIn: parent
-        width: Math.min(parent.width - 48, 640)
-        height: 64
-        radius: 32
-        color: Qt.rgba(0.08, 0.09, 0.11, 0.88)
+        width: Math.min(parent.width - 48, 680)
+        height: 82
+        radius: 20
+        color: Qt.rgba(0.08, 0.09, 0.12, 0.88)
         border.color: Qt.rgba(1, 1, 1, 0.16)
         border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            anchors.topMargin: 6
-            anchors.bottomMargin: 6
-            spacing: 2
+            anchors.margins: 12
+            spacing: 6
 
             // Seekbar and Time Labels
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                Layout.preferredHeight: 24
+                spacing: 10
 
                 CachyLabel {
                     text: root.formatTime(root.position)
                     font.pixelSize: 11
-                    color: Qt.rgba(1, 1, 1, 0.75)
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 CachySlider {
                     id: seekSlider
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
                     from: 0.0
                     to: Math.max(root.duration, 1.0)
                     value: root.position
@@ -80,20 +80,24 @@ Item {
                 CachyLabel {
                     text: root.formatTime(root.duration)
                     font.pixelSize: 11
-                    color: Qt.rgba(1, 1, 1, 0.75)
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
 
             // Media & Tool Buttons
             RowLayout {
                 Layout.fillWidth: true
+                Layout.preferredHeight: 32
                 spacing: 8
 
                 // Open File
                 CachyToolbarButton {
                     iconName: "document-open"
                     tooltipText: qsTr("Abrir archivo...")
+                    pillStyle: false
                     onClicked: root.openFilePicker()
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 // Subtitles menu
@@ -101,7 +105,9 @@ Item {
                     id: subBtn
                     iconName: "media-view-subtitles"
                     tooltipText: qsTr("Subtítulos")
+                    pillStyle: false
                     onClicked: root.openTracksMenu("sub", subBtn)
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 // Audio menu
@@ -109,18 +115,21 @@ Item {
                     id: audioBtn
                     iconName: "audio-speakers"
                     tooltipText: qsTr("Pistas de audio")
+                    pillStyle: false
                     onClicked: root.openTracksMenu("audio", audioBtn)
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 Item { Layout.fillWidth: true }
 
-                // Play / Pause central button
+                // Play / Pause central button (macOS QuickTime Glass Orb)
                 Rectangle {
+                    Layout.alignment: Qt.AlignVCenter
                     width: 32
                     height: 32
                     radius: 16
-                    color: Qt.rgba(1, 1, 1, 0.16)
-                    border.color: Qt.rgba(1, 1, 1, 0.25)
+                    color: playHover.hovered ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.14)
+                    border.color: Qt.rgba(1, 1, 1, 0.28)
                     border.width: 1
 
                     CachyIcon {
@@ -130,10 +139,13 @@ Item {
                         color: "white"
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
+                    HoverHandler {
+                        id: playHover
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.playPauseClicked()
+                    }
+
+                    TapHandler {
+                        onTapped: root.playPauseClicked()
                     }
                 }
 
@@ -143,12 +155,15 @@ Item {
                 CachyToolbarButton {
                     iconName: root.isMuted || root.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
                     tooltipText: qsTr("Silenciar")
+                    pillStyle: false
                     onClicked: root.muteToggled()
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 CachySlider {
                     id: volumeSlider
                     Layout.preferredWidth: 70
+                    Layout.alignment: Qt.AlignVCenter
                     from: 0
                     to: 150
                     value: root.volume
@@ -159,14 +174,18 @@ Item {
                 CachyToolbarButton {
                     iconName: "view-fullscreen"
                     tooltipText: qsTr("Pantalla completa")
+                    pillStyle: false
                     onClicked: root.toggleFullscreen()
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 // Preferences
                 CachyToolbarButton {
                     iconName: "configure"
                     tooltipText: qsTr("Ajustes")
+                    pillStyle: false
                     onClicked: root.openPreferences()
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
         }
