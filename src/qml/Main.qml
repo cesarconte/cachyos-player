@@ -271,7 +271,12 @@ CachyWindow {
                 trackMenu.trackType = type
                 trackMenu.trackList = mpvController.trackList
                 trackMenu.currentVideoPath = mpvController.currentPath
-                trackMenu.open()
+                if (targetItem) {
+                    trackMenu.preferredEdge = Qt.TopEdge
+                    trackMenu.openAt(targetItem)
+                } else {
+                    trackMenu.open()
+                }
             }
         }
     }

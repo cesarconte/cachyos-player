@@ -8,6 +8,9 @@
 #include <QDir>
 #include <QUrl>
 #include <QOpenGLContext>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <mpv/render_gl.h>
 
 static void *get_proc_address_ctrl(void *ctx, const char *name)
@@ -47,8 +50,8 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "mute", MPV_FORMAT_FLAG);
     mpv_observe_property(m_mpv, 0, "media-title", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "path", MPV_FORMAT_STRING);
-    mpv_observe_property(m_mpv, 0, "track-list", MPV_FORMAT_NODE);
-    mpv_observe_property(m_mpv, 0, "playlist", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "track-list", MPV_FORMAT_STRING);
+    mpv_observe_property(m_mpv, 0, "playlist", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "playlist-pos", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
@@ -238,6 +241,8 @@ void MpvController::handleMpvEvents()
             break;
         }
         case MPV_EVENT_FILE_LOADED: {
+            updateTracks();
+            updatePlaylist();
             Q_EMIT fileLoaded(m_currentPath);
             break;
         }
@@ -249,40 +254,29 @@ void MpvController::handleMpvEvents()
 
 void MpvController::updateTracks()
 {
-    mpv_node node;
-    if (mpv_get_property(m_mpv, "track-list", MPV_FORMAT_NODE, &node) >= 0) {
-        if (node.format == MPV_FORMAT_NODE_ARRAY) {
-            QVariantList list;
-            bool foundVideo = false;
-            for (int i = 0; i < node.u.list->num; i++) {
-                if (node.u.list->values[i].format == MPV_FORMAT_NODE_MAP) {
-                    QVariantMap track;
-                    mpv_node_list *m = node.u.list->values[i].u.list;
-                    for (int j = 0; j < m->num; j++) {
-                        QString key = QString::fromUtf8(m->keys[j]);
-                        if (m->values[j].format == MPV_FORMAT_STRING) {
-                            track[key] = QString::fromUtf8(m->values[j].u.string);
-                        } else if (m->values[j].format == MPV_FORMAT_INT64) {
-                            track[key] = static_cast<qint64>(m->values[j].u.int64);
-                        } else if (m->values[j].format == MPV_FORMAT_FLAG) {
-                            track[key] = (m->values[j].u.flag != 0);
-                        }
-                    }
-                    if (track.value(QStringLiteral("type")).toString() == QStringLiteral("video")) {
-                        foundVideo = true;
-                    }
-                    list.append(track);
-                }
-            }
-            m_trackList = list;
-            Q_EMIT trackListChanged();
+    char *jsonStr = mpv_get_property_string(m_mpv, "track-list");
+    if (!jsonStr) return;
 
-            if (m_hasVideo != foundVideo) {
-                m_hasVideo = foundVideo;
-                Q_EMIT hasVideoChanged();
+    QJsonDocument doc = QJsonDocument::fromJson(QByteArray(jsonStr));
+    mpv_free(jsonStr);
+
+    if (doc.isArray()) {
+        QVariantList list = doc.array().toVariantList();
+        bool foundVideo = false;
+        for (const auto &item : list) {
+            QVariantMap track = item.toMap();
+            if (track.value(QStringLiteral("type")).toString() == QStringLiteral("video")) {
+                foundVideo = true;
+                break;
             }
         }
-        mpv_free_node_contents(&node);
+        m_trackList = list;
+        Q_EMIT trackListChanged();
+
+        if (m_hasVideo != foundVideo) {
+            m_hasVideo = foundVideo;
+            Q_EMIT hasVideoChanged();
+        }
     }
 }
 
@@ -343,6 +337,7 @@ void MpvController::performAutoload(const QString &filePath)
     QStringList files = dir.entryList(filters, QDir::Files, QDir::Name | QDir::LocaleAware);
     if (files.size() <= 1) return;
 
+    // Append siblings to playlist in order
     for (const auto &file : files) {
         QString fullPath = dir.absoluteFilePath(file);
         if (fullPath != filePath) {
@@ -367,10 +362,13 @@ void MpvController::openFile(const QString &fileOrUrl)
     }
 
     detectCoverArt(cleanPath);
-    performAutoload(cleanPath);
 
-    const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), nullptr};
+    // Load target file first (replacing current playback)
+    const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), "replace", nullptr};
     mpv_command_async(m_mpv, 0, args);
+
+    // Populate playlist with siblings in the same directory
+    performAutoload(cleanPath);
 }
 
 void MpvController::togglePause()
@@ -446,13 +444,23 @@ void MpvController::previousPlaylistTrack()
 
 void MpvController::selectTrack(const QString &type, int id)
 {
-    QByteArray propName = type.toUtf8();
-    if (id < 0) {
-        const char *val = "no";
-        mpv_set_property_string(m_mpv, propName.constData(), val);
+    // mpv property names: 'sid' for subtitles, 'aid' for audio, 'vid' for video
+    QByteArray propName;
+    if (type == QStringLiteral("sub")) {
+        propName = "sid";
+    } else if (type == QStringLiteral("audio")) {
+        propName = "aid";
+    } else if (type == QStringLiteral("video")) {
+        propName = "vid";
     } else {
-        int64_t val = id;
-        mpv_set_property(m_mpv, propName.constData(), MPV_FORMAT_INT64, &val);
+        propName = type.toUtf8();
+    }
+
+    if (id < 0) {
+        mpv_set_property_string(m_mpv, propName.constData(), "no");
+    } else {
+        QByteArray val = QByteArray::number(id);
+        mpv_set_property_string(m_mpv, propName.constData(), val.constData());
     }
 }
 
@@ -506,31 +514,15 @@ void MpvController::takeScreenshot()
 
 void MpvController::updatePlaylist()
 {
-    mpv_node node;
-    if (mpv_get_property(m_mpv, "playlist", MPV_FORMAT_NODE, &node) >= 0) {
-        if (node.format == MPV_FORMAT_NODE_ARRAY) {
-            QVariantList list;
-            for (int i = 0; i < node.u.list->num; i++) {
-                if (node.u.list->values[i].format == MPV_FORMAT_NODE_MAP) {
-                    QVariantMap item;
-                    mpv_node_list *m = node.u.list->values[i].u.list;
-                    for (int j = 0; j < m->num; j++) {
-                        QString key = QString::fromUtf8(m->keys[j]);
-                        if (m->values[j].format == MPV_FORMAT_STRING) {
-                            item[key] = QString::fromUtf8(m->values[j].u.string);
-                        } else if (m->values[j].format == MPV_FORMAT_FLAG) {
-                            item[key] = (m->values[j].u.flag != 0);
-                        } else if (m->values[j].format == MPV_FORMAT_INT64) {
-                            item[key] = static_cast<qint64>(m->values[j].u.int64);
-                        }
-                    }
-                    list.append(item);
-                }
-            }
-            m_playlist = list;
-            Q_EMIT playlistChanged();
-        }
-        mpv_free_node_contents(&node);
+    char *jsonStr = mpv_get_property_string(m_mpv, "playlist");
+    if (!jsonStr) return;
+
+    QJsonDocument doc = QJsonDocument::fromJson(QByteArray(jsonStr));
+    mpv_free(jsonStr);
+
+    if (doc.isArray()) {
+        m_playlist = doc.array().toVariantList();
+        Q_EMIT playlistChanged();
     }
 }
 

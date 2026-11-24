@@ -7,8 +7,8 @@ import org.cachyos.player
 
 CachyPopover {
     id: root
-    preferredWidth: 380
-    maxHeight: 480
+    preferredWidth: 460
+    maxHeight: 520
 
     property var trackList: []
     property string trackType: "sub" // "sub" or "audio"
@@ -18,14 +18,16 @@ CachyPopover {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        anchors.margins: 14
-        spacing: 10
+        spacing: 12
 
+        // Header
         RowLayout {
             Layout.fillWidth: true
+            spacing: 8
+
             CachyHeading {
                 level: 3
-                text: root.trackType === "sub" ? qsTr("Pistas de Subtítulos") : qsTr("Pistas de Audio")
+                text: root.trackType === "sub" ? qsTr("Subtítulos") : qsTr("Pistas de Audio")
                 Layout.fillWidth: true
             }
 
@@ -75,12 +77,12 @@ CachyPopover {
         ListView {
             id: trackListView
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: Math.min(320, Math.max(120, count * 52))
             clip: true
             model: root.trackList.filter(t => t.type === root.trackType)
 
             delegate: CachyListItem {
-                width: ListView.view.width
+                width: trackListView.width
                 title: {
                     var name = modelData.title || modelData.lang || (root.trackType + " #" + modelData.id);
                     if (modelData.external) name += " " + qsTr("[externo]");
