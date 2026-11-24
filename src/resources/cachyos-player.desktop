@@ -6,6 +6,7 @@ Exec=cachyos-player %U
 Icon=multimedia-video-player
 Terminal=false
 Type=Application
+StartupWMClass=cachyos-player
 Categories=Qt;AudioVideo;Player;Video;
 MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;audio/flac;audio/mpeg;audio/ogg;
 Keywords=mpv;video;player;movie;media;audio;

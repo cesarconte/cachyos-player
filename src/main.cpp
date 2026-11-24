@@ -35,8 +35,10 @@ int main(int argc, char *argv[])
     QGuiApplication::setOrganizationDomain(QStringLiteral("cachyos.org"));
     QGuiApplication::setApplicationName(QStringLiteral("cachyos-player"));
     QGuiApplication::setApplicationDisplayName(QStringLiteral("CachyOS Player"));
+    QGuiApplication::setDesktopFileName(QStringLiteral("cachyos-player"));
 
     QGuiApplication app(argc, argv);
+    app.setDesktopFileName(QStringLiteral("cachyos-player"));
     KLocalizedString::setApplicationDomain("cachyos-player");
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("multimedia-video-player"), QIcon(QStringLiteral(":/icons/cachyos-player.png"))));
 
