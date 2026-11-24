@@ -87,6 +87,13 @@ Item {
                         to: Math.max(root.duration, 1.0)
                         value: root.position
 
+                        Binding {
+                            target: seekSlider
+                            property: "value"
+                            value: root.position
+                            when: !seekSlider.pressed
+                        }
+
                         onMoved: {
                             root.seekRequested(value)
                         }
