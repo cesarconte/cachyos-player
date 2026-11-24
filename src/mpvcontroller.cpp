@@ -60,6 +60,9 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "dwidth", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "dheight", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "video-aspect-override", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(m_mpv, 0, "sub-scale", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(m_mpv, 0, "sub-pos", MPV_FORMAT_INT64);
+    mpv_observe_property(m_mpv, 0, "sub-delay", MPV_FORMAT_DOUBLE);
 
     connect(&m_eventTimer, &QTimer::timeout, this, &MpvController::handleMpvEvents);
     m_eventTimer.start(25);
@@ -170,7 +173,7 @@ void MpvController::setupMpvOptions()
 
     // Subtitle options
     QString slang = s.value(QStringLiteral("sub/slang"), QStringLiteral("es-ES,es,spa")).toString();
-    QString alang = s.value(QStringLiteral("sub/alang"), QStringLiteral("en,eng,es,spa")).toString();
+    QString alang = s.value(QStringLiteral("audio/alang"), QStringLiteral("en,eng,es,spa")).toString();
     bool subDemuxerMkvPreroll = s.value(QStringLiteral("sub/demuxerMkvPreroll"), true).toBool();
     bool subFixTiming = s.value(QStringLiteral("sub/fixTiming"), false).toBool();
     QString subAuto = s.value(QStringLiteral("sub/auto"), QStringLiteral("fuzzy")).toString();
@@ -180,6 +183,8 @@ void MpvController::setupMpvOptions()
     QString subFontProvider = s.value(QStringLiteral("sub/fontProvider"), QStringLiteral("fontconfig")).toString();
     bool subAss = s.value(QStringLiteral("sub/ass"), true).toBool();
     double subScale = s.value(QStringLiteral("sub/scale"), 1.0).toDouble();
+    int subPos = s.value(QStringLiteral("sub/pos"), 100).toInt();
+    double subDelay = s.value(QStringLiteral("sub/delay"), 0.0).toDouble();
 
     QString subFont = s.value(QStringLiteral("sub/font"), QStringLiteral("Netflix Sans Med")).toString();
     int subFontSize = s.value(QStringLiteral("sub/fontSize"), 54).toInt();
@@ -209,6 +214,8 @@ void MpvController::setupMpvOptions()
     mpv_set_option_string(m_mpv, "sub-font-provider", subFontProvider.toUtf8().constData());
     mpv_set_option_string(m_mpv, "sub-ass", subAss ? "yes" : "no");
     mpv_set_option_string(m_mpv, "sub-scale", QByteArray::number(subScale).constData());
+    mpv_set_option_string(m_mpv, "sub-pos", QByteArray::number(subPos).constData());
+    mpv_set_option_string(m_mpv, "sub-delay", QByteArray::number(subDelay).constData());
 
     mpv_set_option_string(m_mpv, "sub-font", subFont.toUtf8().constData());
     mpv_set_option_string(m_mpv, "sub-font-size", QByteArray::number(subFontSize).constData());
@@ -306,6 +313,15 @@ void MpvController::handleMpvEvents()
                     m_videoAspect = static_cast<double>(m_videoWidth) / static_cast<double>(m_videoHeight);
                 }
                 Q_EMIT videoSizeChanged();
+            } else if (strcmp(prop->name, "sub-scale") == 0 && prop->format == MPV_FORMAT_DOUBLE) {
+                m_subScale = *static_cast<double *>(prop->data);
+                Q_EMIT subScaleChanged();
+            } else if (strcmp(prop->name, "sub-pos") == 0 && prop->format == MPV_FORMAT_INT64) {
+                m_subPos = static_cast<int>(*static_cast<int64_t *>(prop->data));
+                Q_EMIT subPosChanged();
+            } else if (strcmp(prop->name, "sub-delay") == 0 && prop->format == MPV_FORMAT_DOUBLE) {
+                m_subDelay = *static_cast<double *>(prop->data);
+                Q_EMIT subDelayChanged();
             }
             break;
         }
@@ -610,6 +626,24 @@ void MpvController::setPlaybackSpeed(double speed)
 {
     speed = qBound(0.25, speed, 4.0);
     mpv_set_property_async(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE, &speed);
+}
+
+void MpvController::setSubScale(double scale)
+{
+    scale = qBound(0.1, scale, 10.0);
+    mpv_set_property_async(m_mpv, 0, "sub-scale", MPV_FORMAT_DOUBLE, &scale);
+}
+
+void MpvController::setSubPos(int pos)
+{
+    pos = qBound(0, pos, 150);
+    int64_t val = pos;
+    mpv_set_property_async(m_mpv, 0, "sub-pos", MPV_FORMAT_INT64, &val);
+}
+
+void MpvController::setSubDelay(double delay)
+{
+    mpv_set_property_async(m_mpv, 0, "sub-delay", MPV_FORMAT_DOUBLE, &delay);
 }
 
 void MpvController::nextChapter()

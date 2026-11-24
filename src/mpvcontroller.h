@@ -30,6 +30,9 @@ class MpvController : public QObject
     Q_PROPERTY(int videoHeight READ videoHeight NOTIFY videoSizeChanged)
     Q_PROPERTY(double videoAspect READ videoAspect NOTIFY videoSizeChanged)
     Q_PROPERTY(QString coverArtPath READ coverArtPath NOTIFY coverArtPathChanged)
+    Q_PROPERTY(double subScale READ subScale WRITE setSubScale NOTIFY subScaleChanged)
+    Q_PROPERTY(int subPos READ subPos WRITE setSubPos NOTIFY subPosChanged)
+    Q_PROPERTY(double subDelay READ subDelay WRITE setSubDelay NOTIFY subDelayChanged)
 
 public:
     explicit MpvController(QObject *parent = nullptr);
@@ -69,6 +72,12 @@ public:
     int videoHeight() const { return m_videoHeight; }
     double videoAspect() const { return m_videoAspect; }
     QString coverArtPath() const { return m_coverArtPath; }
+    double subScale() const { return m_subScale; }
+    void setSubScale(double scale);
+    int subPos() const { return m_subPos; }
+    void setSubPos(int pos);
+    double subDelay() const { return m_subDelay; }
+    void setSubDelay(double delay);
 
     Q_INVOKABLE void openFile(const QString &fileOrUrl);
     Q_INVOKABLE void openFiles(const QList<QUrl> &urls);
@@ -108,6 +117,9 @@ Q_SIGNALS:
     void hasVideoChanged();
     void videoSizeChanged();
     void coverArtPathChanged();
+    void subScaleChanged();
+    void subPosChanged();
+    void subDelayChanged();
     void fileLoaded(const QString &path);
     void mpvRedrawRequested();
 
@@ -145,5 +157,8 @@ private:
     int m_videoHeight{0};
     double m_videoAspect{1.7777};
     QString m_coverArtPath;
+    double m_subScale{1.0};
+    int m_subPos{100};
+    double m_subDelay{0.0};
     QString m_pendingFile;
 };

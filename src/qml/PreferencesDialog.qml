@@ -206,6 +206,14 @@ ModalSheet {
                 CachyFormCard {
                     Layout.fillWidth: true
 
+                    CachyFormTextFieldDelegate {
+                        label: qsTr("Idiomas Preferidos de Audio (alang)")
+                        text: PlayerSettings.alang
+                        onAccepted: PlayerSettings.alang = text
+                    }
+
+                    CachyFormDelegateSeparator {}
+
                     CachyFormComboBoxDelegate {
                         label: qsTr("Servidor de Salida (ao)")
                         description: qsTr("Motor de encaminamiento de audio")
@@ -327,17 +335,9 @@ ModalSheet {
                     Layout.fillWidth: true
 
                     CachyFormTextFieldDelegate {
-                        label: qsTr("Idiomas de Subtítulos (slang)")
+                        label: qsTr("Idiomas Preferidos de Subtítulos (slang)")
                         text: PlayerSettings.slang
                         onAccepted: PlayerSettings.slang = text
-                    }
-
-                    CachyFormDelegateSeparator {}
-
-                    CachyFormTextFieldDelegate {
-                        label: qsTr("Idiomas de Audio (alang)")
-                        text: PlayerSettings.alang
-                        onAccepted: PlayerSettings.alang = text
                     }
 
                     CachyFormDelegateSeparator {}
@@ -426,6 +426,18 @@ ModalSheet {
 
                     CachyFormDelegateSeparator {}
 
+                    CachyFormSpinBoxDelegate {
+                        label: qsTr("Escala de Subtítulos (sub-scale, 50%-300%)")
+                        from: 50
+                        to: 300
+                        stepSize: 10
+                        suffix: "%"
+                        value: Math.round(PlayerSettings.subScale * 100)
+                        onValueModified: (val) => PlayerSettings.subScale = val / 100.0
+                    }
+
+                    CachyFormDelegateSeparator {}
+
                     CachyFormTextFieldDelegate {
                         label: qsTr("Fuente (sub-font)")
                         text: PlayerSettings.subFont
@@ -502,6 +514,17 @@ ModalSheet {
                         stepSize: 2
                         value: PlayerSettings.subMarginY
                         onValueModified: (val) => PlayerSettings.subMarginY = val
+                    }
+
+                    CachyFormDelegateSeparator {}
+
+                    CachyFormSpinBoxDelegate {
+                        label: qsTr("Posición Vertical en Pantalla (sub-pos, 0=arriba, 100=abajo)")
+                        from: 0
+                        to: 150
+                        stepSize: 5
+                        value: PlayerSettings.subPos
+                        onValueModified: (val) => PlayerSettings.subPos = val
                     }
 
                     CachyFormDelegateSeparator {}

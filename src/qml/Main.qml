@@ -323,6 +323,62 @@ CachyWindow {
         sequence: "i"
         onActivated: mpvController.toggleStats()
     }
+    Shortcut {
+        sequence: "z"
+        onActivated: {
+            var nextDel = Math.round((mpvController.subDelay - 0.1) * 10) / 10
+            mpvController.subDelay = nextDel
+            PlayerSettings.subDelay = nextDel
+            hudPill.show("media-view-subtitles", qsTr("Subtítulos: %1s").arg((nextDel >= 0 ? "+" : "") + nextDel.toFixed(1)))
+        }
+    }
+    Shortcut {
+        sequence: "Shift+Z"
+        onActivated: {
+            var nextDel = Math.round((mpvController.subDelay + 0.1) * 10) / 10
+            mpvController.subDelay = nextDel
+            PlayerSettings.subDelay = nextDel
+            hudPill.show("media-view-subtitles", qsTr("Subtítulos: %1s").arg((nextDel >= 0 ? "+" : "") + nextDel.toFixed(1)))
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Up"
+        onActivated: {
+            var nextPos = Math.max(0, mpvController.subPos - 5)
+            mpvController.subPos = nextPos
+            PlayerSettings.subPos = nextPos
+            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1%").arg(nextPos))
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Down"
+        onActivated: {
+            var nextPos = Math.min(150, mpvController.subPos + 5)
+            mpvController.subPos = nextPos
+            PlayerSettings.subPos = nextPos
+            hudPill.show("media-view-subtitles", qsTr("Posición Sub: %1%").arg(nextPos))
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+["
+        onActivated: {
+            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
+            var nextVal = Math.max(0.5, Math.round((cur - 0.1) * 10) / 10)
+            mpvController.subScale = nextVal
+            PlayerSettings.subScale = nextVal
+            hudPill.show("media-view-subtitles", qsTr("Tamaño Sub: %1%").arg(Math.round(nextVal * 100)))
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+]"
+        onActivated: {
+            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
+            var nextVal = Math.min(3.0, Math.round((cur + 0.1) * 10) / 10)
+            mpvController.subScale = nextVal
+            PlayerSettings.subScale = nextVal
+            hudPill.show("media-view-subtitles", qsTr("Tamaño Sub: %1%").arg(Math.round(nextVal * 100)))
+        }
+    }
 
 
     MpvController {
@@ -392,6 +448,8 @@ CachyWindow {
         function onSubShadowColorChanged() { mpvController.setProperty("sub-shadow-color", PlayerSettings.subShadowColor) }
         function onSubBlurChanged() { mpvController.setProperty("sub-blur", PlayerSettings.subBlur) }
         function onSubMarginYChanged() { mpvController.setProperty("sub-margin-y", PlayerSettings.subMarginY) }
+        function onSubPosChanged() { mpvController.setProperty("sub-pos", PlayerSettings.subPos) }
+        function onSubDelayChanged() { mpvController.setProperty("sub-delay", PlayerSettings.subDelay) }
         function onBlendSubtitlesChanged() { mpvController.setProperty("blend-subtitles", PlayerSettings.blendSubtitles) }
         function onSlangChanged() { mpvController.setProperty("slang", PlayerSettings.slang) }
         function onAlangChanged() { mpvController.setProperty("alang", PlayerSettings.alang) }

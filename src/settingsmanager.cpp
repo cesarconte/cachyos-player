@@ -60,6 +60,8 @@ void SettingsManager::resetToDefaults()
     Q_EMIT subShadowColorChanged();
     Q_EMIT subBlurChanged();
     Q_EMIT subMarginYChanged();
+    Q_EMIT subPosChanged();
+    Q_EMIT subDelayChanged();
     Q_EMIT subAssOverrideChanged();
     Q_EMIT blendSubtitlesChanged();
     Q_EMIT autoLoadNextChanged();

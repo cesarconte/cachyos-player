@@ -30,6 +30,7 @@ class SettingsManager : public QObject
     Q_PROPERTY(bool resumePlayback READ resumePlayback WRITE setResumePlayback NOTIFY resumePlaybackChanged)
 
     // === 2. Audio ===
+    Q_PROPERTY(QString alang READ alang WRITE setAlang NOTIFY alangChanged)
     Q_PROPERTY(QString ao READ ao WRITE setAo NOTIFY aoChanged)
     Q_PROPERTY(int maxVolume READ maxVolume WRITE setMaxVolume NOTIFY maxVolumeChanged)
     Q_PROPERTY(QString audioFileAuto READ audioFileAuto WRITE setAudioFileAuto NOTIFY audioFileAutoChanged)
@@ -44,7 +45,6 @@ class SettingsManager : public QObject
 
     // === 3. Subtitles & Languages ===
     Q_PROPERTY(QString slang READ slang WRITE setSlang NOTIFY slangChanged)
-    Q_PROPERTY(QString alang READ alang WRITE setAlang NOTIFY alangChanged)
     Q_PROPERTY(QString syncTool READ syncTool WRITE setSyncTool NOTIFY syncToolChanged)
     Q_PROPERTY(bool subDemuxerMkvPreroll READ subDemuxerMkvPreroll WRITE setSubDemuxerMkvPreroll NOTIFY subDemuxerMkvPrerollChanged)
     Q_PROPERTY(bool subFixTiming READ subFixTiming WRITE setSubFixTiming NOTIFY subFixTimingChanged)
@@ -69,6 +69,8 @@ class SettingsManager : public QObject
     Q_PROPERTY(QString subShadowColor READ subShadowColor WRITE setSubShadowColor NOTIFY subShadowColorChanged)
     Q_PROPERTY(double subBlur READ subBlur WRITE setSubBlur NOTIFY subBlurChanged)
     Q_PROPERTY(int subMarginY READ subMarginY WRITE setSubMarginY NOTIFY subMarginYChanged)
+    Q_PROPERTY(int subPos READ subPos WRITE setSubPos NOTIFY subPosChanged)
+    Q_PROPERTY(double subDelay READ subDelay WRITE setSubDelay NOTIFY subDelayChanged)
     Q_PROPERTY(QString subAssOverride READ subAssOverride WRITE setSubAssOverride NOTIFY subAssOverrideChanged)
     Q_PROPERTY(bool blendSubtitles READ blendSubtitles WRITE setBlendSubtitles NOTIFY blendSubtitlesChanged)
     Q_PROPERTY(bool autoLoadNext READ autoLoadNext WRITE setAutoLoadNext NOTIFY autoLoadNextChanged)
@@ -176,8 +178,8 @@ public:
     QString slang() const { return m_settings.value(QStringLiteral("sub/slang"), QStringLiteral("es-ES,es,spa")).toString(); }
     void setSlang(const QString &v) { setVal(QStringLiteral("sub/slang"), v); Q_EMIT slangChanged(); }
 
-    QString alang() const { return m_settings.value(QStringLiteral("sub/alang"), QStringLiteral("en,eng,es,spa")).toString(); }
-    void setAlang(const QString &v) { setVal(QStringLiteral("sub/alang"), v); Q_EMIT alangChanged(); }
+    QString alang() const { return m_settings.value(QStringLiteral("audio/alang"), QStringLiteral("en,eng,es,spa")).toString(); }
+    void setAlang(const QString &v) { setVal(QStringLiteral("audio/alang"), v); Q_EMIT alangChanged(); }
 
     QString syncTool() const { return m_settings.value(QStringLiteral("sub/syncTool"), QStringLiteral("ffsubsync")).toString(); }
     void setSyncTool(const QString &v) { setVal(QStringLiteral("sub/syncTool"), v); Q_EMIT syncToolChanged(); }
@@ -250,6 +252,12 @@ public:
 
     int subMarginY() const { return m_settings.value(QStringLiteral("sub/marginY"), 54).toInt(); }
     void setSubMarginY(int v) { setVal(QStringLiteral("sub/marginY"), v); Q_EMIT subMarginYChanged(); }
+
+    int subPos() const { return m_settings.value(QStringLiteral("sub/pos"), 100).toInt(); }
+    void setSubPos(int v) { setVal(QStringLiteral("sub/pos"), v); Q_EMIT subPosChanged(); }
+
+    double subDelay() const { return m_settings.value(QStringLiteral("sub/delay"), 0.0).toDouble(); }
+    void setSubDelay(double v) { setVal(QStringLiteral("sub/delay"), v); Q_EMIT subDelayChanged(); }
 
     QString subAssOverride() const { return m_settings.value(QStringLiteral("sub/assOverride"), QStringLiteral("scale")).toString(); }
     void setSubAssOverride(const QString &v) { setVal(QStringLiteral("sub/assOverride"), v); Q_EMIT subAssOverrideChanged(); }
@@ -334,6 +342,8 @@ Q_SIGNALS:
     void subShadowColorChanged();
     void subBlurChanged();
     void subMarginYChanged();
+    void subPosChanged();
+    void subDelayChanged();
     void subAssOverrideChanged();
     void blendSubtitlesChanged();
     void autoLoadNextChanged();

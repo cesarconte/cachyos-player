@@ -99,7 +99,7 @@ CachyPopover {
         ListView {
             id: trackListView
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(320, Math.max(120, count * 52))
+            Layout.preferredHeight: Math.min(220, Math.max(100, count * 52))
             clip: true
             model: root.trackList.filter(t => t.type === root.trackType)
 
@@ -131,6 +131,188 @@ CachyPopover {
                 visible: trackListView.count === 0
                 text: root.trackType === "sub" ? qsTr("No hay subtítulos disponibles") : qsTr("No hay pistas de audio")
                 iconName: root.trackType === "sub" ? "media-view-subtitles" : "audio-speakers"
+            }
+        }
+
+        // Subtitle Quick Adjustments (Size, Position, Sync Delay)
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: root.trackType === "sub"
+            spacing: 8
+
+            CachyDivider {
+                Layout.fillWidth: true
+            }
+
+            CachyLabel {
+                text: qsTr("Ajustes Rápidos de Subtítulos")
+                font.weight: Font.DemiBold
+                font.pixelSize: 12
+                color: CachyPalette.text
+            }
+
+            // Row 1: Tamaño y Posición Vertical
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                // Tamaño (sub-scale)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    CachyLabel {
+                        text: qsTr("Tamaño:")
+                        font.pixelSize: 11
+                        color: CachyPalette.textSecondary
+                    }
+
+                    CachyButton {
+                        text: "A−"
+                        Layout.preferredWidth: 34
+                        Layout.preferredHeight: 28
+                        onClicked: {
+                            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
+                            var nextVal = Math.max(0.5, Math.round((cur - 0.1) * 10) / 10)
+                            mpvController.subScale = nextVal
+                            PlayerSettings.subScale = nextVal
+                        }
+                    }
+
+                    CachyLabel {
+                        text: Math.round(mpvController.subScale * 100) + "%"
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        Layout.preferredWidth: 38
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    CachyButton {
+                        text: "A+"
+                        Layout.preferredWidth: 34
+                        Layout.preferredHeight: 28
+                        onClicked: {
+                            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
+                            var nextVal = Math.min(3.0, Math.round((cur + 0.1) * 10) / 10)
+                            mpvController.subScale = nextVal
+                            PlayerSettings.subScale = nextVal
+                        }
+                    }
+                }
+
+                // Posición (sub-pos)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    CachyLabel {
+                        text: qsTr("Posición:")
+                        font.pixelSize: 11
+                        color: CachyPalette.textSecondary
+                    }
+
+                    CachyButton {
+                        iconName: "go-up"
+                        Layout.preferredWidth: 32
+                        Layout.preferredHeight: 28
+                        onClicked: {
+                            var nextPos = Math.max(0, mpvController.subPos - 5)
+                            mpvController.subPos = nextPos
+                            PlayerSettings.subPos = nextPos
+                        }
+                    }
+
+                    CachyLabel {
+                        text: mpvController.subPos === 100 ? qsTr("Abajo") : (mpvController.subPos < 50 ? qsTr("Arriba") : (mpvController.subPos + "%"))
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        Layout.preferredWidth: 44
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    CachyButton {
+                        iconName: "go-down"
+                        Layout.preferredWidth: 32
+                        Layout.preferredHeight: 28
+                        onClicked: {
+                            var nextPos = Math.min(150, mpvController.subPos + 5)
+                            mpvController.subPos = nextPos
+                            PlayerSettings.subPos = nextPos
+                        }
+                    }
+                }
+            }
+
+            // Row 2: Sincronización / Desfase temporal (sub-delay)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                CachyLabel {
+                    text: qsTr("Sincronización:")
+                    font.pixelSize: 11
+                    color: CachyPalette.textSecondary
+                    Layout.fillWidth: true
+                }
+
+                CachyButton {
+                    text: "−0.5s"
+                    Layout.preferredHeight: 28
+                    onClicked: {
+                        var nextDel = Math.round((mpvController.subDelay - 0.5) * 10) / 10
+                        mpvController.subDelay = nextDel
+                        PlayerSettings.subDelay = nextDel
+                    }
+                }
+
+                CachyButton {
+                    text: "−0.1s"
+                    Layout.preferredHeight: 28
+                    onClicked: {
+                        var nextDel = Math.round((mpvController.subDelay - 0.1) * 10) / 10
+                        mpvController.subDelay = nextDel
+                        PlayerSettings.subDelay = nextDel
+                    }
+                }
+
+                CachyLabel {
+                    text: (mpvController.subDelay >= 0 ? "+" : "") + mpvController.subDelay.toFixed(1) + "s"
+                    font.pixelSize: 11
+                    font.weight: Font.Bold
+                    color: mpvController.subDelay === 0 ? CachyPalette.textSecondary : CachyTheme.accentColor
+                    Layout.preferredWidth: 44
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                CachyButton {
+                    text: "+0.1s"
+                    Layout.preferredHeight: 28
+                    onClicked: {
+                        var nextDel = Math.round((mpvController.subDelay + 0.1) * 10) / 10
+                        mpvController.subDelay = nextDel
+                        PlayerSettings.subDelay = nextDel
+                    }
+                }
+
+                CachyButton {
+                    text: "+0.5s"
+                    Layout.preferredHeight: 28
+                    onClicked: {
+                        var nextDel = Math.round((mpvController.subDelay + 0.5) * 10) / 10
+                        mpvController.subDelay = nextDel
+                        PlayerSettings.subDelay = nextDel
+                    }
+                }
+
+                CachyButton {
+                    text: qsTr("0s")
+                    Layout.preferredHeight: 28
+                    visible: mpvController.subDelay !== 0
+                    onClicked: {
+                        mpvController.subDelay = 0.0
+                        PlayerSettings.subDelay = 0.0
+                    }
+                }
             }
         }
 
