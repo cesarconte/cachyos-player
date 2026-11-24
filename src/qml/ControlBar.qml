@@ -22,6 +22,7 @@ Item {
     signal openPlaylist()
     signal openPreferences()
     signal openFilePicker()
+    signal openFolderPicker()
     signal toggleFullscreen()
 
     function formatTime(seconds) {
@@ -100,10 +101,30 @@ Item {
 
                 // LEFT CLUSTER: Sources & Menus (Open, Subtitles, Audio)
                 MediaButton {
+                    id: openBtn
                     iconName: "document-open"
-                    tooltipText: qsTr("Abrir archivo...")
-                    onClicked: root.openFilePicker()
+                    tooltipText: qsTr("Abrir...")
+                    onClicked: openMenu.open()
                     Layout.alignment: Qt.AlignVCenter
+
+                    CachyMenu {
+                        id: openMenu
+                        y: -implicitHeight - 6
+
+                        CachyMenuItem {
+                            text: qsTr("Abrir archivo(s)...")
+                            iconName: "document-open"
+                            shortcutText: "Ctrl+O"
+                            onTriggered: root.openFilePicker()
+                        }
+
+                        CachyMenuItem {
+                            text: qsTr("Abrir carpeta...")
+                            iconName: "folder-open"
+                            shortcutText: "Ctrl+Shift+O"
+                            onTriggered: root.openFolderPicker()
+                        }
+                    }
                 }
 
                 MediaButton {

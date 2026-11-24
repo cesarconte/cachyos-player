@@ -96,6 +96,10 @@ CachyWindow {
         onActivated: fileDialog.open()
     }
     Shortcut {
+        sequence: "Ctrl+Shift+O"
+        onActivated: folderDialog.open()
+    }
+    Shortcut {
         sequence: "Ctrl+,"
         onActivated: preferencesDialog.open()
     }
@@ -294,6 +298,7 @@ CachyWindow {
             onUserVolumeChanged: (vol) => mpvController.volume = vol
             onMuteToggled: mpvController.muted = !mpvController.muted
             onOpenFilePicker: fileDialog.open()
+            onOpenFolderPicker: folderDialog.open()
             onToggleFullscreen: window.toggleFullscreen()
             onOpenPreferences: preferencesDialog.open()
 
@@ -312,16 +317,32 @@ CachyWindow {
         }
     }
 
-    // Native file picker
+    // Native multi-file picker
     FileDialog {
         id: fileDialog
-        title: qsTr("Abrir vídeo o audio")
+        title: qsTr("Abrir vídeo(s) o audio(s)")
+        fileMode: FileDialog.OpenFiles
         nameFilters: [
-            qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.wav *.ogg)"),
+            qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.wav *.ogg *.opus *.m4v *.ts *.m2ts)"),
             qsTr("Todos los archivos (*)")
         ]
         onAccepted: {
-            mpvController.openFile(fileDialog.selectedFile)
+            if (fileDialog.selectedFiles && fileDialog.selectedFiles.length > 0) {
+                mpvController.openFiles(fileDialog.selectedFiles)
+            } else if (fileDialog.selectedFile) {
+                mpvController.openFile(fileDialog.selectedFile)
+            }
+        }
+    }
+
+    // Native folder picker (e.g. whole season or music album)
+    FolderDialog {
+        id: folderDialog
+        title: qsTr("Abrir carpeta / temporada")
+        onAccepted: {
+            if (folderDialog.selectedFolder) {
+                mpvController.openFiles([folderDialog.selectedFolder])
+            }
         }
     }
 
@@ -404,10 +425,17 @@ CachyWindow {
 
     FileDialog {
         id: playlistFileDialog
-        title: qsTr("Añadir archivo a la lista")
+        title: qsTr("Añadir archivo(s) a la lista")
+        fileMode: FileDialog.OpenFiles
         nameFilters: [qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.ogg)"), qsTr("Todos los archivos (*)")]
         onAccepted: {
-            mpvController.addFileToPlaylist(playlistFileDialog.selectedFile.toString())
+            if (playlistFileDialog.selectedFiles && playlistFileDialog.selectedFiles.length > 0) {
+                for (var i = 0; i < playlistFileDialog.selectedFiles.length; ++i) {
+                    mpvController.addFileToPlaylist(playlistFileDialog.selectedFiles[i].toString())
+                }
+            } else if (playlistFileDialog.selectedFile) {
+                mpvController.addFileToPlaylist(playlistFileDialog.selectedFile.toString())
+            }
         }
     }
 
