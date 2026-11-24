@@ -9,7 +9,7 @@ CachyPopover {
     preferredWidth: 460
     maxHeight: 520
 
-    property var trackList: []
+    property var trackList: mpvController.trackList
     property string trackType: "sub" // "sub" or "audio"
     property string currentVideoPath: ""
     signal trackSelected(string type, int id)
@@ -41,11 +41,11 @@ CachyPopover {
                     enabled: !SubSync.isSyncing
                     onClicked: {
                         var selectedSub = root.trackList.find(t => t.type === "sub" && t.selected)
-                        if (selectedSub && selectedSub.externalFilename) {
-                            SubSync.syncSubtitle(root.currentVideoPath, selectedSub.externalFilename)
-                        } else {
-                            SubSync.syncSubtitle(root.currentVideoPath, "")
+                        var subFile = ""
+                        if (selectedSub) {
+                            subFile = selectedSub["external-filename"] || selectedSub.externalFilename || ""
                         }
+                        SubSync.syncSubtitle(root.currentVideoPath, subFile)
                     }
                 }
 

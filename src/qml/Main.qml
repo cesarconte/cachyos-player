@@ -697,8 +697,6 @@ CachyWindow {
             onOpenPlaylist: playlistDrawer.open()
             onOpenTracksMenu: (type, targetItem) => {
                 trackMenu.trackType = type
-                trackMenu.trackList = mpvController.trackList
-                trackMenu.currentVideoPath = mpvController.currentPath
                 if (targetItem) {
                     trackMenu.preferredEdge = Qt.TopEdge
                     trackMenu.openAt(targetItem)
@@ -787,6 +785,61 @@ CachyWindow {
         currentVideoPath: mpvController.currentPath
         onTrackSelected: (type, id) => {
             mpvController.selectTrack(type, id)
+        }
+    }
+
+    // Automatic Subtitle Downloader (autosub.lua parity)
+    property string lastAutoSubVideo: ""
+
+    Connections {
+        target: mpvController
+        function onTrackListChanged() {
+            autoSubTimer.restart()
+        }
+        function onFileLoaded(path) {
+            autoSubTimer.restart()
+        }
+    }
+
+    Timer {
+        id: autoSubTimer
+        interval: 1200
+        repeat: false
+        onTriggered: {
+            var currentVideo = mpvController.currentPath
+            if (!currentVideo || currentVideo.length === 0 || currentVideo.startsWith("http")) return;
+            if (currentVideo === window.lastAutoSubVideo) return;
+            if (mpvController.duration < 120) return; // Ignore very short clips/audio
+            if (SubSync.isSyncing) return;
+
+            // Check if there are already Spanish subtitles (embedded or external)
+            var hasSpanish = false
+            for (var i = 0; i < mpvController.trackList.length; ++i) {
+                var t = mpvController.trackList[i]
+                if (t.type === "sub") {
+                    var lang = (t.lang || "").toLowerCase()
+                    var title = (t.title || "").toLowerCase()
+                    var extFn = (t["external-filename"] || "").toLowerCase()
+                    if (lang === "es" || lang === "spa" || lang === "es-es" || lang === "es-419" || lang === "spanish" || lang === "castellano" || lang === "español") {
+                        hasSpanish = true
+                        break
+                    }
+                    if (title.indexOf("span") !== -1 || title.indexOf("españ") !== -1 || title.indexOf("castell") !== -1) {
+                        hasSpanish = true
+                        break
+                    }
+                    if (extFn.indexOf(".es.") !== -1 || extFn.indexOf(".spa.") !== -1) {
+                        hasSpanish = true
+                        break
+                    }
+                }
+            }
+
+            if (!hasSpanish) {
+                window.lastAutoSubVideo = currentVideo
+                hudPill.show("download", qsTr("Buscando subtítulos en español automáticamente..."))
+                SubSync.downloadSubtitles(currentVideo, "es")
+            }
         }
     }
 
