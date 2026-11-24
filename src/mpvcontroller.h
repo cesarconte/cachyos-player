@@ -6,6 +6,7 @@
 #include <QVariantMap>
 #include <QTimer>
 #include <mpv/client.h>
+#include <mpv/render.h>
 
 class MpvController : public QObject
 {
@@ -31,6 +32,8 @@ public:
     ~MpvController() override;
 
     mpv_handle *mpv() const { return m_mpv; }
+    mpv_render_context *renderContext() const { return m_mpvGL; }
+    void initRenderContext();
 
     bool isPaused() const { return m_paused; }
     void setPaused(bool paused);
@@ -91,6 +94,7 @@ Q_SIGNALS:
     void hasVideoChanged();
     void coverArtPathChanged();
     void fileLoaded(const QString &path);
+    void mpvRedrawRequested();
 
 private Q_SLOTS:
     void handleMpvEvents();
@@ -98,8 +102,13 @@ private Q_SLOTS:
 private:
     void setupMpvOptions();
     void updateTracks();
+    void detectCoverArt(const QString &filePath);
+    void performAutoload(const QString &filePath);
+
+    static void on_mpv_render_update(void *ctx);
 
     mpv_handle *m_mpv{nullptr};
+    mpv_render_context *m_mpvGL{nullptr};
     QTimer m_eventTimer;
     bool m_paused{false};
     double m_duration{0.0};
@@ -116,6 +125,5 @@ private:
     bool m_eofReached{false};
     bool m_hasVideo{false};
     QString m_coverArtPath;
-    void detectCoverArt(const QString &filePath);
-    void performAutoload(const QString &filePath);
+    QString m_pendingFile;
 };

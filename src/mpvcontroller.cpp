@@ -6,6 +6,22 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QUrl>
+#include <QOpenGLContext>
+#include <mpv/render_gl.h>
+
+static void *get_proc_address_ctrl(void *ctx, const char *name)
+{
+    Q_UNUSED(ctx);
+    QOpenGLContext *glctx = QOpenGLContext::currentContext();
+    if (!glctx) return nullptr;
+    return reinterpret_cast<void *>(glctx->getProcAddress(QByteArray(name)));
+}
+
+void MpvController::on_mpv_render_update(void *ctx)
+{
+    MpvController *ctrl = static_cast<MpvController *>(ctx);
+    QMetaObject::invokeMethod(ctrl, "mpvRedrawRequested", Qt::QueuedConnection);
+}
 
 MpvController::MpvController(QObject *parent)
     : QObject(parent)
@@ -34,7 +50,6 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
 
-    // Event polling loop (low overhead, 25ms interval)
     connect(&m_eventTimer, &QTimer::timeout, this, &MpvController::handleMpvEvents);
     m_eventTimer.start(25);
 }
@@ -42,9 +57,39 @@ MpvController::MpvController(QObject *parent)
 MpvController::~MpvController()
 {
     m_eventTimer.stop();
+    if (m_mpvGL) {
+        mpv_render_context_free(m_mpvGL);
+        m_mpvGL = nullptr;
+    }
     if (m_mpv) {
         mpv_terminate_destroy(m_mpv);
         m_mpv = nullptr;
+    }
+}
+
+void MpvController::initRenderContext()
+{
+    if (m_mpvGL) return;
+
+    mpv_opengl_init_params gl_init_params{get_proc_address_ctrl, nullptr};
+    mpv_render_param params[]{
+        {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
+        {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
+        {MPV_RENDER_PARAM_INVALID, nullptr}
+    };
+
+    if (mpv_render_context_create(&m_mpvGL, m_mpv, params) < 0) {
+        qWarning() << "Failed to initialize mpv render context in controller";
+        return;
+    }
+
+    mpv_render_context_set_update_callback(m_mpvGL, on_mpv_render_update, this);
+
+    // If there was a pending file to load before render context was ready, load it now!
+    if (!m_pendingFile.isEmpty()) {
+        QString f = m_pendingFile;
+        m_pendingFile.clear();
+        openFile(f);
     }
 }
 
@@ -52,7 +97,6 @@ void MpvController::setupMpvOptions()
 {
     QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
 
-    // Crucial: libmpv should NOT open its own independent window!
     mpv_set_option_string(m_mpv, "vo", "libmpv");
 
     QString hwdec = settings.value(QStringLiteral("video/hwdec"), QStringLiteral("auto-safe")).toString();
@@ -74,7 +118,6 @@ void MpvController::setupMpvOptions()
         mpv_set_option_string(m_mpv, "audio-resample-cutoff", "0.98");
     }
 
-    // Keep open at end of video & auto load audio/subtitles
     mpv_set_option_string(m_mpv, "keep-open", "yes");
     mpv_set_option_string(m_mpv, "sub-auto", "fuzzy");
     mpv_set_option_string(m_mpv, "audio-file-auto", "fuzzy");
@@ -174,6 +217,72 @@ void MpvController::updateTracks()
     }
 }
 
+void MpvController::detectCoverArt(const QString &filePath)
+{
+    m_coverArtPath.clear();
+    QFileInfo fi(filePath);
+    if (!fi.exists()) {
+        Q_EMIT coverArtPathChanged();
+        return;
+    }
+
+    QDir dir = fi.dir();
+    QStringList candidates = {
+        QStringLiteral("cover.jpg"), QStringLiteral("cover.png"),
+        QStringLiteral("folder.jpg"), QStringLiteral("folder.png"),
+        QStringLiteral("front.jpg"), QStringLiteral("front.png"),
+        QStringLiteral("album.jpg"), QStringLiteral("album.png"),
+        fi.completeBaseName() + QStringLiteral(".jpg"),
+        fi.completeBaseName() + QStringLiteral(".png")
+    };
+
+    for (const auto &cand : candidates) {
+        if (dir.exists(cand)) {
+            m_coverArtPath = QUrl::fromLocalFile(dir.absoluteFilePath(cand)).toString();
+            break;
+        }
+    }
+
+    if (m_coverArtPath.isEmpty()) {
+        char *cover = mpv_get_property_string(m_mpv, "cover-art");
+        if (cover) {
+            m_coverArtPath = QString::fromUtf8(cover);
+            mpv_free(cover);
+        }
+    }
+    Q_EMIT coverArtPathChanged();
+}
+
+void MpvController::performAutoload(const QString &filePath)
+{
+    QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
+    if (!settings.value(QStringLiteral("playback/autoLoadNext"), true).toBool()) {
+        return;
+    }
+
+    QFileInfo fi(filePath);
+    if (!fi.exists()) return;
+
+    QDir dir = fi.dir();
+    QStringList filters = {
+        QStringLiteral("*.mp4"), QStringLiteral("*.mkv"), QStringLiteral("*.avi"),
+        QStringLiteral("*.mov"), QStringLiteral("*.webm"), QStringLiteral("*.m4v"),
+        QStringLiteral("*.flac"), QStringLiteral("*.mp3"), QStringLiteral("*.ogg"),
+        QStringLiteral("*.opus"), QStringLiteral("*.wav"), QStringLiteral("*.m4a")
+    };
+
+    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name | QDir::LocaleAware);
+    if (files.size() <= 1) return;
+
+    for (const auto &file : files) {
+        QString fullPath = dir.absoluteFilePath(file);
+        if (fullPath != filePath) {
+            const char *args[] = {"loadfile", fullPath.toUtf8().constData(), "append", nullptr};
+            mpv_command_async(m_mpv, 0, args);
+        }
+    }
+}
+
 void MpvController::openFile(const QString &fileOrUrl)
 {
     if (fileOrUrl.isEmpty()) return;
@@ -183,9 +292,16 @@ void MpvController::openFile(const QString &fileOrUrl)
         cleanPath = QUrl(cleanPath).toLocalFile();
     }
 
+    // If render context is not ready yet, wait until MpvItem initializes it
+    if (!m_mpvGL) {
+        m_pendingFile = cleanPath;
+        return;
+    }
+
     detectCoverArt(cleanPath);
     performAutoload(cleanPath);
 
+    
     const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), nullptr};
     mpv_command_async(m_mpv, 0, args);
 }
@@ -319,70 +435,4 @@ void MpvController::takeScreenshot()
 {
     const char *args[] = {"screenshot", "video", nullptr};
     mpv_command_async(m_mpv, 0, args);
-}
-
-void MpvController::detectCoverArt(const QString &filePath)
-{
-    m_coverArtPath.clear();
-    QFileInfo fi(filePath);
-    if (!fi.exists()) {
-        Q_EMIT coverArtPathChanged();
-        return;
-    }
-
-    QDir dir = fi.dir();
-    QStringList candidates = {
-        QStringLiteral("cover.jpg"), QStringLiteral("cover.png"),
-        QStringLiteral("folder.jpg"), QStringLiteral("folder.png"),
-        QStringLiteral("front.jpg"), QStringLiteral("front.png"),
-        QStringLiteral("album.jpg"), QStringLiteral("album.png"),
-        fi.completeBaseName() + QStringLiteral(".jpg"),
-        fi.completeBaseName() + QStringLiteral(".png")
-    };
-
-    for (const auto &cand : candidates) {
-        if (dir.exists(cand)) {
-            m_coverArtPath = QUrl::fromLocalFile(dir.absoluteFilePath(cand)).toString();
-            break;
-        }
-    }
-    // Also check for embedded coverart via libmpv property
-    if (m_coverArtPath.isEmpty()) {
-        char *cover = mpv_get_property_string(m_mpv, "cover-art");
-        if (cover) {
-            m_coverArtPath = QString::fromUtf8(cover);
-            mpv_free(cover);
-        }
-    }
-    Q_EMIT coverArtPathChanged();
-}
-
-void MpvController::performAutoload(const QString &filePath)
-{
-    QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
-    if (!settings.value(QStringLiteral("playback/autoLoadNext"), true).toBool()) {
-        return;
-    }
-
-    QFileInfo fi(filePath);
-    if (!fi.exists()) return;
-
-    QDir dir = fi.dir();
-    QStringList filters = {
-        QStringLiteral("*.mp4"), QStringLiteral("*.mkv"), QStringLiteral("*.avi"),
-        QStringLiteral("*.mov"), QStringLiteral("*.webm"), QStringLiteral("*.m4v"),
-        QStringLiteral("*.flac"), QStringLiteral("*.mp3"), QStringLiteral("*.ogg"),
-        QStringLiteral("*.opus"), QStringLiteral("*.wav"), QStringLiteral("*.m4a")
-    };
-
-    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name | QDir::LocaleAware);
-    if (files.size() <= 1) return;
-
-    for (const auto &file : files) {
-        QString fullPath = dir.absoluteFilePath(file);
-        if (fullPath != filePath) {
-            const char *args[] = {"loadfile", fullPath.toUtf8().constData(), "append", nullptr};
-            mpv_command_async(m_mpv, 0, args);
-        }
-    }
 }

@@ -75,6 +75,7 @@ CachyWindow {
             id: mpvItem
             anchors.fill: parent
             controller: mpvController
+            z: 0
         }
 
         // Audio / Music Presentation Surface
@@ -152,6 +153,7 @@ CachyWindow {
         // Bottom Floating Controls (QuickTime & uosc ergonomics)
         ControlBar {
             id: controlBar
+            z: 10
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right

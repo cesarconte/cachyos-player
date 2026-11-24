@@ -5,14 +5,6 @@
 #include <mpv/render_gl.h>
 #include <QDebug>
 
-static void *get_proc_address_mpv(void *ctx, const char *name)
-{
-    Q_UNUSED(ctx);
-    QOpenGLContext *glctx = QOpenGLContext::currentContext();
-    if (!glctx) return nullptr;
-    return reinterpret_cast<void *>(glctx->getProcAddress(QByteArray(name)));
-}
-
 class MpvFboRenderer : public QQuickFramebufferObject::Renderer
 {
 public:
@@ -23,16 +15,6 @@ public:
 
     ~MpvFboRenderer() override
     {
-        if (m_mpvGL) {
-            mpv_render_context_free(m_mpvGL);
-            m_mpvGL = nullptr;
-        }
-    }
-
-    static void on_update(void *ctx)
-    {
-        MpvFboRenderer *r = static_cast<MpvFboRenderer *>(ctx);
-        QMetaObject::invokeMethod(const_cast<MpvItem *>(r->m_item), "update", Qt::QueuedConnection);
     }
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override
@@ -46,21 +28,13 @@ public:
             return;
         }
 
-        if (!m_mpvGL) {
-            mpv_opengl_init_params gl_init_params{get_proc_address_mpv, nullptr};
-            mpv_render_param params[]{
-                {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
-                {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
-                {MPV_RENDER_PARAM_INVALID, nullptr}
-            };
-
-            if (mpv_render_context_create(&m_mpvGL, m_item->controller()->mpv(), params) < 0) {
-                qWarning() << "Failed to initialize mpv render context in FBO";
-                return;
-            }
-
-            mpv_render_context_set_update_callback(m_mpvGL, on_update, this);
+        // Initialize render context in OpenGL thread if not already created
+        if (!m_item->controller()->renderContext()) {
+            m_item->controller()->initRenderContext();
         }
+
+        mpv_render_context *ctx = m_item->controller()->renderContext();
+        if (!ctx) return;
 
         QOpenGLFramebufferObject *fbo = framebufferObject();
         if (!fbo) return;
@@ -79,13 +53,17 @@ public:
             {MPV_RENDER_PARAM_INVALID, nullptr}
         };
 
-        mpv_render_context_render(m_mpvGL, params);
-        mpv_render_context_report_swap(m_mpvGL);
+        int err = mpv_render_context_render(ctx, params);
+        // qDebug() << "mpv_render_context_render res:" << err;
+        int res = mpv_render_context_render(ctx, params);
+        if (res < 0) {
+            qWarning() << "mpv_render_context_render returned error:" << res;
+        }
+        mpv_render_context_report_swap(ctx);
     }
 
 private:
     const MpvItem *m_item{nullptr};
-    mpv_render_context *m_mpvGL{nullptr};
 };
 
 MpvItem::MpvItem(QQuickItem *parent)
@@ -106,7 +84,13 @@ QQuickFramebufferObject::Renderer *MpvItem::createRenderer() const
 void MpvItem::setController(MpvController *c)
 {
     if (m_controller == c) return;
+    if (m_controller) {
+        disconnect(m_controller, &MpvController::mpvRedrawRequested, this, &QQuickItem::update);
+    }
     m_controller = c;
+    if (m_controller) {
+        connect(m_controller, &MpvController::mpvRedrawRequested, this, &QQuickItem::update, Qt::QueuedConnection);
+    }
     Q_EMIT controllerChanged();
     update();
 }
