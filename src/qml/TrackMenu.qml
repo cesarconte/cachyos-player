@@ -2,26 +2,56 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import CachyOS.UI
+import org.cachyos.player
 
 CachyPopover {
     id: root
-    preferredWidth: 320
-    maxHeight: 380
+    preferredWidth: 340
+    maxHeight: 440
 
     property var trackList: []
     property string trackType: "sub" // "sub" or "audio"
+    property string currentVideoPath: ""
     signal trackSelected(string type, int id)
 
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: 14
+        spacing: 10
 
-        CachyHeading {
-            level: 3
-            text: root.trackType === "sub" ? qsTr("Subtítulos") : qsTr("Pistas de Audio")
+        RowLayout {
             Layout.fillWidth: true
+            CachyHeading {
+                level: 3
+                text: root.trackType === "sub" ? qsTr("Subtítulos") : qsTr("Pistas de Audio")
+                Layout.fillWidth: true
+            }
+
+            // Sync button (for subtitles)
+            CachyButton {
+                visible: root.trackType === "sub"
+                text: SubSync.isSyncing ? qsTr("Sincronizando...") : qsTr("Sincronizar")
+                iconName: "system-run"
+                enabled: !SubSync.isSyncing
+                onClicked: {
+                    var selectedSub = root.trackList.find(t => t.type === "sub" && t.selected)
+                    if (selectedSub && selectedSub.externalFilename) {
+                        SubSync.syncSubtitle(root.currentVideoPath, selectedSub.externalFilename)
+                    } else {
+                        SubSync.downloadSubtitles(root.currentVideoPath, "es")
+                    }
+                }
+            }
+        }
+
+        CachyLabel {
+            visible: SubSync.statusMessage.length > 0
+            text: SubSync.statusMessage
+            font.pixelSize: 11
+            color: CachyTheme.accentColor
+            Layout.fillWidth: true
+            elide: Text.ElideRight
         }
 
         CachyDivider {

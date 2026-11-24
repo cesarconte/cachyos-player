@@ -183,6 +183,9 @@ void MpvController::openFile(const QString &fileOrUrl)
         cleanPath = QUrl(cleanPath).toLocalFile();
     }
 
+    detectCoverArt(cleanPath);
+    performAutoload(cleanPath);
+
     const char *args[] = {"loadfile", cleanPath.toUtf8().constData(), nullptr};
     mpv_command_async(m_mpv, 0, args);
 }
@@ -316,4 +319,62 @@ void MpvController::takeScreenshot()
 {
     const char *args[] = {"screenshot", "video", nullptr};
     mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::detectCoverArt(const QString &filePath)
+{
+    m_coverArtPath.clear();
+    QFileInfo fi(filePath);
+    if (!fi.exists()) {
+        Q_EMIT coverArtPathChanged();
+        return;
+    }
+
+    QDir dir = fi.dir();
+    QStringList candidates = {
+        QStringLiteral("cover.jpg"), QStringLiteral("cover.png"),
+        QStringLiteral("folder.jpg"), QStringLiteral("folder.png"),
+        QStringLiteral("front.jpg"), QStringLiteral("front.png"),
+        QStringLiteral("album.jpg"), QStringLiteral("album.png"),
+        fi.completeBaseName() + QStringLiteral(".jpg"),
+        fi.completeBaseName() + QStringLiteral(".png")
+    };
+
+    for (const auto &cand : candidates) {
+        if (dir.exists(cand)) {
+            m_coverArtPath = QUrl::fromLocalFile(dir.absoluteFilePath(cand)).toString();
+            break;
+        }
+    }
+    Q_EMIT coverArtPathChanged();
+}
+
+void MpvController::performAutoload(const QString &filePath)
+{
+    QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
+    if (!settings.value(QStringLiteral("playback/autoLoadNext"), true).toBool()) {
+        return;
+    }
+
+    QFileInfo fi(filePath);
+    if (!fi.exists()) return;
+
+    QDir dir = fi.dir();
+    QStringList filters = {
+        QStringLiteral("*.mp4"), QStringLiteral("*.mkv"), QStringLiteral("*.avi"),
+        QStringLiteral("*.mov"), QStringLiteral("*.webm"), QStringLiteral("*.m4v"),
+        QStringLiteral("*.flac"), QStringLiteral("*.mp3"), QStringLiteral("*.ogg"),
+        QStringLiteral("*.opus"), QStringLiteral("*.wav"), QStringLiteral("*.m4a")
+    };
+
+    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name | QDir::LocaleAware);
+    if (files.size() <= 1) return;
+
+    for (const auto &file : files) {
+        QString fullPath = dir.absoluteFilePath(file);
+        if (fullPath != filePath) {
+            const char *args[] = {"loadfile", fullPath.toUtf8().constData(), "append", nullptr};
+            mpv_command_async(m_mpv, 0, args);
+        }
+    }
 }

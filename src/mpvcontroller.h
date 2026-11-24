@@ -24,6 +24,7 @@ class MpvController : public QObject
     Q_PROPERTY(double playbackSpeed READ playbackSpeed WRITE setPlaybackSpeed NOTIFY playbackSpeedChanged)
     Q_PROPERTY(bool eofReached READ eofReached NOTIFY eofReachedChanged)
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
+    Q_PROPERTY(QString coverArtPath READ coverArtPath NOTIFY coverArtPathChanged)
 
 public:
     explicit MpvController(QObject *parent = nullptr);
@@ -57,6 +58,7 @@ public:
 
     bool eofReached() const { return m_eofReached; }
     bool hasVideo() const { return m_hasVideo; }
+    QString coverArtPath() const { return m_coverArtPath; }
 
     Q_INVOKABLE void openFile(const QString &fileOrUrl);
     Q_INVOKABLE void togglePause();
@@ -87,6 +89,7 @@ Q_SIGNALS:
     void playbackSpeedChanged();
     void eofReachedChanged();
     void hasVideoChanged();
+    void coverArtPathChanged();
     void fileLoaded(const QString &path);
 
 private Q_SLOTS:
@@ -112,4 +115,7 @@ private:
     double m_playbackSpeed{1.0};
     bool m_eofReached{false};
     bool m_hasVideo{false};
+    QString m_coverArtPath;
+    void detectCoverArt(const QString &filePath);
+    void performAutoload(const QString &filePath);
 };

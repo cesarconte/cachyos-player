@@ -8,6 +8,7 @@
 #include "mpvcontroller.h"
 #include "mpvitem.h"
 #include "settingsmanager.h"
+#include "subsyncmanager.h"
 
 int main(int argc, char *argv[])
 {
@@ -31,6 +32,12 @@ int main(int argc, char *argv[])
             Q_UNUSED(engine);
             Q_UNUSED(scriptEngine);
             return new SettingsManager();
+        });
+    qmlRegisterSingletonType<SubSyncManager>("org.cachyos.player", 1, 0, "SubSync",
+        [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+            Q_UNUSED(engine);
+            Q_UNUSED(scriptEngine);
+            return new SubSyncManager();
         });
 
     QQmlApplicationEngine engine;

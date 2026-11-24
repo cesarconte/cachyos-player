@@ -6,6 +6,8 @@ set(SOURCES
     mpvitem.cpp
     settingsmanager.h
     settingsmanager.cpp
+    subsyncmanager.h
+    subsyncmanager.cpp
 )
 
 qt_add_executable(cachyos-player ${SOURCES})

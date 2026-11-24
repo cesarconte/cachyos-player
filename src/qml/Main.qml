@@ -75,10 +75,30 @@ CachyWindow {
             controller: mpvController
         }
 
+        // Music Cover Art View
+        Image {
+            id: coverArtImage
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.45, 340)
+            height: width
+            fillMode: Image.PreserveAspectFit
+            source: mpvController.coverArtPath
+            visible: mpvController.coverArtPath.length > 0 && !mpvController.hasVideo
+            mipmap: true
+
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border.color: Qt.rgba(1, 1, 1, 0.18)
+                border.width: 1
+                radius: 12
+            }
+        }
+
         // Placeholder when idle
         ColumnLayout {
             anchors.centerIn: parent
-            visible: mpvController.duration === 0
+            visible: mpvController.duration === 0 && mpvController.coverArtPath.length === 0
             spacing: 12
 
             CachyIcon {
@@ -134,6 +154,7 @@ CachyWindow {
             onOpenTracksMenu: (type, targetItem) => {
                 trackMenu.trackType = type
                 trackMenu.trackList = mpvController.trackList
+                trackMenu.currentVideoPath = mpvController.currentPath
                 trackMenu.open()
             }
         }
