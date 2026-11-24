@@ -69,7 +69,7 @@ private:
 MpvItem::MpvItem(QQuickItem *parent)
     : QQuickFramebufferObject(parent)
 {
-    setMirrorVertically(true);
+    setMirrorVertically(false);
 }
 
 MpvItem::~MpvItem()
