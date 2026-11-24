@@ -19,6 +19,7 @@ Item {
     signal userVolumeChanged(double volume)
     signal muteToggled()
     signal openTracksMenu(string type, var targetItem)
+    signal openPlaylist()
     signal openPreferences()
     signal openFilePicker()
     signal toggleFullscreen()
@@ -118,6 +119,14 @@ Item {
                     iconName: "audio-speakers"
                     tooltipText: qsTr("Pistas de audio")
                     onClicked: root.openTracksMenu("audio", audioBtn)
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                MediaButton {
+                    id: playlistBtn
+                    iconName: "media-playlist-normal"
+                    tooltipText: qsTr("Lista de reproducción")
+                    onClicked: root.openPlaylist()
                     Layout.alignment: Qt.AlignVCenter
                 }
 

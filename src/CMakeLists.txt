@@ -36,6 +36,7 @@ qt_add_qml_module(cachyos-player
         qml/PreferencesDialog.qml
         qml/ControlBar.qml
         qml/MediaButton.qml
+        qml/PlaylistDrawer.qml
         qml/TrackMenu.qml
 )
 

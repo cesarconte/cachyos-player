@@ -70,6 +70,10 @@ public:
     Q_INVOKABLE void nextChapter();
     Q_INVOKABLE void previousChapter();
     Q_INVOKABLE void nextPlaylistTrack();
+    Q_INVOKABLE void playPlaylistItem(int index);
+    Q_INVOKABLE void removePlaylistItem(int index);
+    Q_INVOKABLE void addFileToPlaylist(const QString &fileOrUrl);
+    Q_INVOKABLE void clearPlaylist();
     Q_INVOKABLE void previousPlaylistTrack();
     Q_INVOKABLE void selectTrack(const QString &type, int id);
     Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
@@ -102,6 +106,7 @@ private Q_SLOTS:
 private:
     void setupMpvOptions();
     void updateTracks();
+    void updatePlaylist();
     void detectCoverArt(const QString &filePath);
     void performAutoload(const QString &filePath);
 

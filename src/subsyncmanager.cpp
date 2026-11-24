@@ -3,11 +3,15 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QUrl>
+#include <QSettings>
 #include <QDebug>
 
 SubSyncManager::SubSyncManager(QObject *parent)
     : QObject(parent)
 {
+    QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
+    m_tool = settings.value(QStringLiteral("sub/syncTool"), QStringLiteral("ffsubsync")).toString();
+
     m_process = new QProcess(this);
     connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &SubSyncManager::onProcessFinished);
@@ -18,6 +22,16 @@ SubSyncManager::~SubSyncManager()
     if (m_process && m_process->state() != QProcess::NotRunning) {
         m_process->kill();
     }
+}
+
+void SubSyncManager::setTool(const QString &t)
+{
+    if (m_tool == t) return;
+    m_tool = t;
+    QSettings settings(QStringLiteral("cachyos"), QStringLiteral("cachyos-player"));
+    settings.setValue(QStringLiteral("sub/syncTool"), m_tool);
+    settings.sync();
+    Q_EMIT toolChanged();
 }
 
 void SubSyncManager::syncSubtitle(const QString &videoPath, const QString &subPath)
@@ -42,23 +56,30 @@ void SubSyncManager::syncSubtitle(const QString &videoPath, const QString &subPa
     m_currentSub = cleanSub;
     m_isDownloadMode = false;
 
-    // Output synchronized subtitle path
     m_targetOutput = QStringLiteral("%1/%2.synced.%3").arg(subInfo.path(), subInfo.completeBaseName(), subInfo.suffix());
 
-    QString ffsubsyncBin = QStandardPaths::findExecutable(QStringLiteral("ffsubsync"));
-    if (ffsubsyncBin.isEmpty()) {
-        ffsubsyncBin = QDir::homePath() + QStringLiteral("/.local/bin/ffsubsync");
+    QString binPath;
+    QStringList args;
+
+    if (m_tool == QStringLiteral("alass")) {
+        binPath = QStandardPaths::findExecutable(QStringLiteral("alass-linux64"));
+        if (binPath.isEmpty()) binPath = QDir::homePath() + QStringLiteral("/.local/bin/alass-linux64");
+        if (binPath.isEmpty()) binPath = QStandardPaths::findExecutable(QStringLiteral("alass"));
+
+        args << m_currentVideo << m_currentSub << m_targetOutput;
+    } else {
+        binPath = QStandardPaths::findExecutable(QStringLiteral("ffsubsync"));
+        if (binPath.isEmpty()) binPath = QDir::homePath() + QStringLiteral("/.local/bin/ffsubsync");
+
+        args << m_currentVideo << QStringLiteral("-i") << m_currentSub << QStringLiteral("-o") << m_targetOutput;
     }
 
     m_isSyncing = true;
-    m_statusMessage = tr("Sincronizando subtítulos con el audio...");
+    m_statusMessage = tr("Sincronizando subtítulos con %1...").arg(m_tool);
     Q_EMIT syncingChanged();
     Q_EMIT statusMessageChanged();
 
-    QStringList args;
-    args << m_currentVideo << QStringLiteral("-i") << m_currentSub << QStringLiteral("-o") << m_targetOutput;
-
-    m_process->start(ffsubsyncBin, args);
+    m_process->start(binPath, args);
 }
 
 void SubSyncManager::downloadSubtitles(const QString &videoPath, const QString &lang)
@@ -77,7 +98,7 @@ void SubSyncManager::downloadSubtitles(const QString &videoPath, const QString &
     }
 
     m_isSyncing = true;
-    m_statusMessage = tr("Buscando y descargando subtítulos...");
+    m_statusMessage = tr("Buscando y descargando subtítulos con subliminal...");
     Q_EMIT syncingChanged();
     Q_EMIT statusMessageChanged();
 

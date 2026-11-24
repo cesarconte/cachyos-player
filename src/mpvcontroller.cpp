@@ -47,6 +47,8 @@ MpvController::MpvController(QObject *parent)
     mpv_observe_property(m_mpv, 0, "media-title", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "path", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpv, 0, "track-list", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "playlist", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "playlist-pos", MPV_FORMAT_INT64);
     mpv_observe_property(m_mpv, 0, "speed", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
 
@@ -165,6 +167,11 @@ void MpvController::handleMpvEvents()
                 Q_EMIT eofReachedChanged();
             } else if (strcmp(prop->name, "track-list") == 0) {
                 updateTracks();
+            } else if (strcmp(prop->name, "playlist") == 0) {
+                updatePlaylist();
+            } else if (strcmp(prop->name, "playlist-pos") == 0 && prop->format == MPV_FORMAT_INT64) {
+                m_playlistCurrentIndex = static_cast<int>(*static_cast<int64_t *>(prop->data));
+                Q_EMIT playlistCurrentIndexChanged();
             }
             break;
         }
@@ -434,5 +441,64 @@ void MpvController::command(const QVariantList &args)
 void MpvController::takeScreenshot()
 {
     const char *args[] = {"screenshot", "video", nullptr};
+    mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::updatePlaylist()
+{
+    mpv_node node;
+    if (mpv_get_property(m_mpv, "playlist", MPV_FORMAT_NODE, &node) >= 0) {
+        if (node.format == MPV_FORMAT_NODE_ARRAY) {
+            QVariantList list;
+            for (int i = 0; i < node.u.list->num; i++) {
+                if (node.u.list->values[i].format == MPV_FORMAT_NODE_MAP) {
+                    QVariantMap item;
+                    mpv_node_list *m = node.u.list->values[i].u.list;
+                    for (int j = 0; j < m->num; j++) {
+                        QString key = QString::fromUtf8(m->keys[j]);
+                        if (m->values[j].format == MPV_FORMAT_STRING) {
+                            item[key] = QString::fromUtf8(m->values[j].u.string);
+                        } else if (m->values[j].format == MPV_FORMAT_FLAG) {
+                            item[key] = (m->values[j].u.flag != 0);
+                        } else if (m->values[j].format == MPV_FORMAT_INT64) {
+                            item[key] = static_cast<qint64>(m->values[j].u.int64);
+                        }
+                    }
+                    list.append(item);
+                }
+            }
+            m_playlist = list;
+            Q_EMIT playlistChanged();
+        }
+        mpv_free_node_contents(&node);
+    }
+}
+
+void MpvController::playPlaylistItem(int index)
+{
+    QByteArray idx = QByteArray::number(index);
+    const char *args[] = {"playlist-play-index", idx.constData(), nullptr};
+    mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::removePlaylistItem(int index)
+{
+    QByteArray idx = QByteArray::number(index);
+    const char *args[] = {"playlist-remove", idx.constData(), nullptr};
+    mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::addFileToPlaylist(const QString &fileOrUrl)
+{
+    if (fileOrUrl.isEmpty()) return;
+    QString clean = fileOrUrl;
+    if (clean.startsWith(QStringLiteral("file://"))) clean = QUrl(clean).toLocalFile();
+    const char *args[] = {"loadfile", clean.toUtf8().constData(), "append", nullptr};
+    mpv_command_async(m_mpv, 0, args);
+}
+
+void MpvController::clearPlaylist()
+{
+    const char *args[] = {"playlist-clear", nullptr};
     mpv_command_async(m_mpv, 0, args);
 }

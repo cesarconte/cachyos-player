@@ -13,6 +13,10 @@ CachyWindow {
     minimumHeight: 340
     title: mpvController.mediaTitle.length > 0 ? mpvController.mediaTitle + " - CachyOS Player" : "CachyOS Player"
     showTitleBarDivider: false
+    showTrafficLights: !isFullscreen
+    showContentTitleBar: !isFullscreen
+    showWindowFrame: !isFullscreen
+    cornerRadius: isFullscreen ? 0 : 20
 
     property bool isFullscreen: false
 
@@ -262,6 +266,7 @@ CachyWindow {
             onToggleFullscreen: window.toggleFullscreen()
             onOpenPreferences: preferencesDialog.open()
 
+            onOpenPlaylist: playlistDrawer.open()
             onOpenTracksMenu: (type, targetItem) => {
                 trackMenu.trackType = type
                 trackMenu.trackList = mpvController.trackList
@@ -350,6 +355,26 @@ CachyWindow {
     PreferencesDialog {
         id: preferencesDialog
     }
+
+    PlaylistDrawer {
+        id: playlistDrawer
+        playlist: mpvController.playlist
+        currentIndex: mpvController.playlistCurrentIndex
+        onItemSelected: (index) => mpvController.playPlaylistItem(index)
+        onItemRemoved: (index) => mpvController.removePlaylistItem(index)
+        onClearRequested: mpvController.clearPlaylist()
+        onAddFileRequested: playlistFileDialog.open()
+    }
+
+    FileDialog {
+        id: playlistFileDialog
+        title: qsTr("Añadir archivo a la lista")
+        nameFilters: [qsTr("Archivos multimedia (*.mp4 *.mkv *.avi *.mov *.webm *.flac *.mp3 *.ogg)"), qsTr("Todos los archivos (*)")]
+        onAccepted: {
+            mpvController.addFileToPlaylist(playlistFileDialog.selectedFile.toString())
+        }
+    }
+
 
     Connections {
         target: mpvController
