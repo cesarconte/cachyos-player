@@ -34,6 +34,8 @@ private Q_SLOTS:
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
+    void parseAutosubCredentials(QStringList &providerArgs);
+
     QProcess *m_process{nullptr};
     bool m_isSyncing{false};
     QString m_statusMessage;
@@ -41,5 +43,7 @@ private:
     QString m_currentVideo;
     QString m_currentSub;
     QString m_targetOutput;
+    QString m_targetSubDir;
+    QString m_videoBaseName;
     bool m_isDownloadMode{false};
 };

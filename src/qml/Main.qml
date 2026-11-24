@@ -796,6 +796,34 @@ CachyWindow {
         }
     }
 
+    Connections {
+        target: SubSync
+        function onDownloadFinished(success, downloadedSubPath) {
+            if (success) {
+                mpvController.command(["rescan-external-files", "reselect"])
+                if (downloadedSubPath && downloadedSubPath.length > 0) {
+                    mpvController.command(["sub-add", downloadedSubPath, "select"])
+                }
+                trackMenu.trackList = mpvController.trackList
+                hudPill.show("download", qsTr("Subtítulo descargado y activado"))
+            } else {
+                hudPill.show("dialog-warning", SubSync.statusMessage.length > 0 ? SubSync.statusMessage : qsTr("No se encontraron subtítulos"))
+            }
+        }
+        function onSyncFinished(success, outputPath) {
+            if (success) {
+                mpvController.command(["rescan-external-files", "reselect"])
+                if (outputPath && outputPath.length > 0) {
+                    mpvController.command(["sub-add", outputPath, "select"])
+                }
+                trackMenu.trackList = mpvController.trackList
+                hudPill.show("system-run", qsTr("Subtítulo sincronizado y activado"))
+            } else {
+                hudPill.show("dialog-warning", SubSync.statusMessage.length > 0 ? SubSync.statusMessage : qsTr("Error de sincronización"))
+            }
+        }
+    }
+
     PreferencesDialog {
         id: preferencesDialog
     }

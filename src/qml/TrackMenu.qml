@@ -51,7 +51,7 @@ CachyPopover {
 
                 CachyButton {
                     iconName: "download"
-                    text: qsTr("Descargar")
+                    text: SubSync.isSyncing ? qsTr("Buscando...") : qsTr("Descargar")
                     enabled: !SubSync.isSyncing
                     onClicked: {
                         SubSync.downloadSubtitles(root.currentVideoPath, "es")
@@ -90,6 +90,7 @@ CachyPopover {
             color: CachyTheme.accentColor
             Layout.fillWidth: true
             elide: Text.ElideRight
+            wrapMode: Text.WordWrap
         }
 
         CachyDivider {
@@ -134,33 +135,32 @@ CachyPopover {
             }
         }
 
-        // Subtitle Quick Adjustments (Size, Position, Sync Delay)
-        ColumnLayout {
+        CachyDivider {
             Layout.fillWidth: true
             visible: root.trackType === "sub"
-            spacing: 8
+        }
 
-            CachyDivider {
-                Layout.fillWidth: true
-            }
+        // Quick Subtitle Controls (Size, Position & Delay)
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            visible: root.trackType === "sub"
 
             CachyLabel {
                 text: qsTr("Ajustes Rápidos de Subtítulos")
+                font.pixelSize: 11
                 font.weight: Font.DemiBold
-                font.pixelSize: 12
-                color: CachyPalette.text
+                color: CachyPalette.textSecondary
             }
 
-            // Row 1: Tamaño y Posición Vertical
+            // Row 1: Tamaño y Posición vertical
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 12
 
                 // Tamaño (sub-scale)
                 RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-
+                    spacing: 4
                     CachyLabel {
                         text: qsTr("Tamaño:")
                         font.pixelSize: 11
@@ -172,8 +172,7 @@ CachyPopover {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
-                            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-                            var nextVal = Math.max(0.1, Math.round((cur - 0.01) * 100) / 100)
+                            var nextVal = Math.max(0.2, Math.round((mpvController.subScale - 0.05) * 100) / 100)
                             mpvController.subScale = nextVal
                             PlayerSettings.subScale = nextVal
                         }
@@ -183,7 +182,7 @@ CachyPopover {
                         text: Math.round(mpvController.subScale * 100) + "%"
                         font.pixelSize: 11
                         font.weight: Font.Medium
-                        Layout.preferredWidth: 38
+                        Layout.preferredWidth: 40
                         horizontalAlignment: Text.AlignHCenter
                     }
 
@@ -192,19 +191,18 @@ CachyPopover {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 28
                         onClicked: {
-                            var cur = mpvController.subScale > 0 ? mpvController.subScale : 1.0
-                            var nextVal = Math.min(5.0, Math.round((cur + 0.01) * 100) / 100)
+                            var nextVal = Math.min(3.0, Math.round((mpvController.subScale + 0.05) * 100) / 100)
                             mpvController.subScale = nextVal
                             PlayerSettings.subScale = nextVal
                         }
                     }
                 }
 
-                // Posición (sub-pos)
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
+                Item { Layout.fillWidth: true }
 
+                // Posición vertical (sub-pos)
+                RowLayout {
+                    spacing: 4
                     CachyLabel {
                         text: qsTr("Posición:")
                         font.pixelSize: 11
