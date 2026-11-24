@@ -4,6 +4,8 @@ set(SOURCES
     mpvcontroller.cpp
     mpvitem.h
     mpvitem.cpp
+    mprismanager.h
+    mprismanager.cpp
     settingsmanager.h
     settingsmanager.cpp
     subsyncmanager.h

@@ -111,6 +111,18 @@ CachyWindow {
         }
     }
 
+    MprisManager {
+        id: mprisManager
+        controller: mpvController
+        onRaiseRequested: {
+            window.showNormal()
+            window.requestActivate()
+        }
+        onQuitRequested: {
+            Qt.quit()
+        }
+    }
+
     // Auto-hide UI timer on inactivity
     Timer {
         id: hideUiTimer
