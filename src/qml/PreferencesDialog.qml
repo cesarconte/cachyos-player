@@ -60,16 +60,6 @@ ModalSheet {
                     CachyFormDelegateSeparator {}
 
                     CachyFormComboBoxDelegate {
-                        label: qsTr("Salida de Vídeo (vo)")
-                        description: qsTr("Salida de renderizado de vídeo moderna")
-                        model: ["gpu-next", "gpu", "dmabuf-wayland", "null"]
-                        currentIndex: model.indexOf(PlayerSettings.vo) !== -1 ? model.indexOf(PlayerSettings.vo) : 0
-                        onActivated: (index) => PlayerSettings.vo = model[index]
-                    }
-
-                    CachyFormDelegateSeparator {}
-
-                    CachyFormComboBoxDelegate {
                         label: qsTr("API de Gráficos (gpu-api)")
                         description: qsTr("Motor de renderizado por hardware")
                         model: ["vulkan", "opengl", "auto"]

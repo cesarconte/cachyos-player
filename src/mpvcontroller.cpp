@@ -109,7 +109,9 @@ void MpvController::setupMpvOptions()
 
     // Profile & Video options
     QString profile = s.value(QStringLiteral("video/profile"), QStringLiteral("high-quality")).toString();
-    QString vo = s.value(QStringLiteral("video/vo"), QStringLiteral("gpu-next")).toString();
+    // Crucial: libmpv should NOT open its own independent window!
+    // Video is rendered via QQuickFramebufferObject using mpv_render_context (OpenGL)
+    mpv_set_option_string(m_mpv, "vo", "libmpv");
     QString gpuApi = s.value(QStringLiteral("video/gpuApi"), QStringLiteral("vulkan")).toString();
     QString gpuContext = s.value(QStringLiteral("video/gpuContext"), QStringLiteral("waylandvk")).toString();
     QString hwdec = s.value(QStringLiteral("video/hwdec"), QStringLiteral("auto")).toString();
@@ -122,7 +124,7 @@ void MpvController::setupMpvOptions()
     bool resumePlay = s.value(QStringLiteral("video/resumePlayback"), false).toBool();
 
     mpv_set_option_string(m_mpv, "profile", profile.toUtf8().constData());
-    mpv_set_option_string(m_mpv, "vo", vo.toUtf8().constData());
+    // mpv_set_option_string(m_mpv, "vo", "libmpv") is already set above
     mpv_set_option_string(m_mpv, "gpu-api", gpuApi.toUtf8().constData());
     mpv_set_option_string(m_mpv, "gpu-context", gpuContext.toUtf8().constData());
     mpv_set_option_string(m_mpv, "hwdec", hwdec.toUtf8().constData());

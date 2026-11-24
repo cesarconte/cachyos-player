@@ -16,7 +16,7 @@ CachyWindow {
     showContentTitleBar: !isFullscreen && !isPip
     showWindowFrame: !isFullscreen && !isPip
     cornerRadius: isFullscreen ? 0 : (isPip ? 14 : 20)
-    flags: isPip ? (Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint) : Qt.Window
+    flags: isPip ? (Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint) : (Qt.Window | Qt.FramelessWindowHint)
 
     headerCenter: CachyLabel {
         text: window.title
